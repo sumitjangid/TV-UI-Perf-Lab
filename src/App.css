@@ -1,0 +1,74 @@
+#root {
+  min-height: 100vh;
+}
+
+.app-shell {
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: clamp(2rem, 6vw, 5rem);
+  color: #f5f7fa;
+  background:
+    radial-gradient(ellipse at 82% 18%, rgb(33 74 105 / 32%), transparent 42%),
+    #101820;
+}
+
+.app-header {
+  max-width: 72rem;
+  margin: 0 auto;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  letter-spacing: -0.04em;
+}
+
+.eyebrow {
+  margin: 0 0 0.75rem;
+  color: #9fb3c5;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.welcome-panel {
+  box-sizing: border-box;
+  max-width: 72rem;
+  margin: clamp(3rem, 10vh, 7rem) auto 0;
+  padding: clamp(1.5rem, 4vw, 3rem);
+  border: 1px solid rgb(194 214 230 / 18%);
+  border-radius: 1.25rem;
+  background: linear-gradient(135deg, rgb(31 48 62 / 92%), rgb(20 32 43 / 92%));
+  box-shadow: 0 1.5rem 5rem rgb(0 0 0 / 22%);
+}
+
+.welcome-panel h2 {
+  margin: 0;
+  font-size: clamp(2rem, 5vw, 4rem);
+  letter-spacing: -0.05em;
+}
+
+.welcome-panel > p:not(.eyebrow) {
+  max-width: 42rem;
+  margin: 1rem 0 0;
+  color: #c3d0db;
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  line-height: 1.6;
+}
+
+.status-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+
+.status-list span {
+  padding: 0.55rem 0.85rem;
+  border: 1px solid rgb(194 214 230 / 20%);
+  border-radius: 999px;
+  color: #d7e3ec;
+  background: rgb(7 15 22 / 35%);
+  font-size: 0.9rem;
+}
