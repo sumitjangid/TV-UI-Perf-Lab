@@ -8,9 +8,11 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "generate:catalog": "tsx scripts/generate-catalog.ts"
+    "generate:catalog": "tsx scripts/generate-catalog.ts",
+    "test": "tsx --test tests/*.test.ts"
   },
   "dependencies": {
+    "@reduxjs/toolkit": "^2.15.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },

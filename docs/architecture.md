@@ -27,15 +27,22 @@ flowchart TB
     app --> appStyles["src/App.css<br/>app styles"]
   end
 
+  subgraph focusModel["Focus-state module (tested; UI integration is next)"]
+    tests["tests/focusSlice.test.ts<br/>Node test runner"] --> reducer["src/store/focusSlice.ts<br/>Redux Toolkit reducer"]
+  end
+
   data -. "not imported yet; planned connection" .-> app
 ```
 
-The two paths are intentionally distinct:
+The build-time, browser, and focus-model flows are intentionally distinct:
 
 - The **generator** creates a predictable data fixture on disk.
 - The **browser app** currently renders a project welcome screen. It does not
   yet import or display `catalog.json`; connecting the data to the browsing UI
   belongs to a later milestone.
+- The **focus reducer** is implemented and tested independently. The current
+  app does not yet create a Redux store or dispatch its actions; that wiring
+  belongs to the keyboard and browsing UI milestone.
 
 ## Responsibilities of the current files
 
@@ -49,6 +56,8 @@ The two paths are intentionally distinct:
 | `scripts/generate-catalog.ts` | Generates 40 rows with 250 synthetic titles per row and writes the JSON fixture. |
 | `src/data/catalog.json` | Stores the generated fixture for later application use. |
 | `public/posters/poster-placeholder.svg` | Supplies a local image asset without an external request. |
+| `src/store/focusSlice.ts` | Defines and exports the focus-state reducer and navigation actions; not yet connected to the UI. |
+| `tests/focusSlice.test.ts` | Tests focus movement rules using Node's built-in test runner. |
 | `vite.config.ts` | Configures the Vite + React development and build toolchain. |
 
 ### Browser startup, step by step
@@ -94,12 +103,14 @@ components rather than having unrelated components read a global file.
   production.
 - **TypeScript** checks the application and build configuration.
 - **Oxlint** checks the source with the repository's configured rules.
+- **Node's built-in test runner**, launched through `tsx`, tests the focus
+  reducer without adding a separate test framework.
 - **The generator** is a separate Node-side script and is not part of the
   browser bundle.
 
-The current validation commands are `npm run lint` and `npm run build`.
-Building successfully confirms the current TypeScript and bundling pipeline;
-it does not measure runtime scrolling performance.
+The current validation commands are `npm test`, `npm run lint`, and
+`npm run build`. Building successfully confirms the current TypeScript and
+bundling pipeline; it does not measure runtime scrolling performance.
 
 ## How the architecture should grow
 

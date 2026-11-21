@@ -215,7 +215,8 @@ export const { setRowLengths, moveRight, moveLeft, moveDown, moveUp } = focusSli
 export default focusSlice.reducer;
 ```
 
-**Done when:** Jest tests prove edge clamping and column memory.
+**Done when:** `npm test` proves edge clamping, column memory, and safe handling
+of empty rows and catalogs.
 
 ### Phase 2: Remote-style key handling and layout (about 4 hours)
 

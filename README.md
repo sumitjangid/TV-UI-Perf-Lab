@@ -17,8 +17,8 @@ so no external image service or API key is needed.
 
 ## Status
 
-Milestone 1: React + TypeScript foundation and deterministic catalog
-generation. Keyboard navigation and browsing UI are next.
+Milestone 2: the Redux Toolkit focus-state model is implemented and tested.
+Keyboard controls and the browsing UI are next.
 
 ## Guides
 
@@ -33,6 +33,7 @@ generation. Keyboard navigation and browsing UI are next.
 ## Checks
 
 ```bash
+npm test
 npm run lint
 npm run build
 ```
