@@ -216,12 +216,17 @@ function App() {
   const rowRange = isNaiveMode
     ? { start: 0, end: catalog.length }
     : windowRange(focus.row, catalog.length, ROWS_BEFORE, ROWS_AFTER);
+  const focusedTitle =
+    catalog[focus.row]?.items[focus.col]?.title ?? null;
 
   return (
     <main
       className={`app-shell tile-size-${tileVariant}`}
       data-preview-delay={previewVariant}
     >
+      <a className="skip-link" href="#catalog">
+        Skip to catalog
+      </a>
       <header className="app-header">
         <p className="eyebrow">A keyboard-first browsing prototype</p>
         <h1>TV UI Performance Lab</h1>
@@ -235,7 +240,7 @@ function App() {
             : "Windowed rendering: visible titles plus a small buffer."}
         </p>
         {previewTitle && (
-          <p className="title-preview" aria-live="polite">
+          <p className="title-preview">
             Preview: {previewTitle}
           </p>
         )}
@@ -244,9 +249,12 @@ function App() {
       <p className="selection-status" role="status" aria-live="polite">
         {statusMessage}
       </p>
+      <p className="sr-only" aria-live="polite" aria-atomic="true">
+        {focusedTitle ? `Focused: ${focusedTitle}` : ""}
+      </p>
 
       {!isLoading && !loadError && (
-        <section className="catalog" aria-label="Title collections">
+        <section className="catalog" id="catalog" aria-label="Title collections">
           {rowRange.start > 0 && (
             <div
               aria-hidden="true"
@@ -280,13 +288,12 @@ function App() {
                 key={row.id}
               >
                 <h2 id={`shelf-${row.id}`}>{row.title}</h2>
-                <div
+                <ul
                   className="shelf-track"
                   aria-label={`${row.title} titles`}
-                  role="group"
                 >
                   {itemRange.start > 0 && (
-                    <div
+                    <li
                       aria-hidden="true"
                       className="tile-spacer"
                       style={{
@@ -302,29 +309,32 @@ function App() {
                         focus.row === rowIndex && focus.col === colIndex;
 
                       return (
-                        <button
-                          className={`title-card${isFocused ? " is-focused" : ""}`}
-                          id={`title-${rowIndex}-${colIndex}`}
-                          key={item.id}
-                          onClick={() => selectItem(rowIndex, colIndex, item)}
-                          tabIndex={isFocused ? 0 : -1}
-                          type="button"
-                        >
-                          <img
-                            alt=""
-                            className="title-poster"
-                            decoding="async"
-                            height="450"
-                            loading="lazy"
-                            src={item.poster}
-                            width="300"
-                          />
-                          <span>{item.title}</span>
-                        </button>
+                        <li className="title-card-slot" key={item.id}>
+                          <button
+                            aria-label={`${item.title}, row ${rowIndex + 1}, title ${colIndex + 1}`}
+                            aria-current={isFocused ? "true" : undefined}
+                            className={`title-card${isFocused ? " is-focused" : ""}`}
+                            id={`title-${rowIndex}-${colIndex}`}
+                            onClick={() => selectItem(rowIndex, colIndex, item)}
+                            tabIndex={isFocused ? 0 : -1}
+                            type="button"
+                          >
+                            <img
+                              alt=""
+                              className="title-poster"
+                              decoding="async"
+                              height="450"
+                              loading="lazy"
+                              src={item.poster}
+                              width="300"
+                            />
+                            <span>{item.title}</span>
+                          </button>
+                        </li>
                       );
                     })}
                   {itemRange.end < row.items.length && (
-                    <div
+                    <li
                       aria-hidden="true"
                       className="tile-spacer"
                       style={{
@@ -332,7 +342,7 @@ function App() {
                       }}
                     />
                   )}
-                </div>
+                </ul>
               </section>
             );
           })}

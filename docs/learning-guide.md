@@ -331,3 +331,72 @@ The synthetic analysis is intentionally explicit about not representing real
 customers. Browser events can provide real local simulations, but no data is
 sent to a server and synthetic traffic must never be presented as production
 evidence.
+
+### Validate variants in development
+
+1. Run `npm run dev` and open the local URL.
+2. Open browser DevTools and select **Application > Local Storage**.
+3. Set a known visitor ID in the console and reload:
+
+   ```js
+   localStorage.setItem("tv-perf-lab-anon-id", "qa-visitor-a");
+   location.reload();
+   ```
+
+4. In **Elements**, inspect the `<main>` element for:
+   - `tile-size-standard` or `tile-size-large`
+   - `data-preview-delay="preview-400"` or
+     `data-preview-delay="preview-1200"`
+5. Focus a title and confirm that the preview appears after the assigned
+   400 ms or 1200 ms delay.
+6. Press Enter or click a tile.
+7. Inspect `tv-perf-lab-experiment-events` in Local Storage. It should contain
+   exposure events and the selection event produced by the click or Enter key.
+
+Try different IDs to exercise both variants. Reloading with the same ID should
+keep the assignment stable. Clearing `tv-perf-lab-anon-id` and
+`tv-perf-lab-experiment-events` resets the browser-side test data.
+
+## Milestone 7: Accessibility
+
+### What we built
+
+- A visible keyboard focus indicator with a white outline and contrasting
+  blue shadow.
+- Shelf titles and rows exposed with heading and list semantics.
+- Accessible title names that include the row and title position.
+- A screen-reader-only live region announcing the focused title.
+- A skip link for moving keyboard focus directly to the catalog.
+- Reduced-motion handling that removes the focused-card scale.
+- Automated axe and Playwright checks for violations and keyboard navigation.
+
+### Why we did it this way
+
+The app was already keyboard-driven, but DOM semantics and screen-reader
+announcements help browsers and assistive technologies understand the catalog.
+The focus ring remains visible without relying on color alone; reduced-motion
+settings avoid unnecessary scale animation.
+
+### Manual validation
+
+Run `npm run dev`, then:
+
+1. Tab once and confirm that the Skip to catalog link becomes visible.
+2. Activate the skip link and confirm focus reaches the catalog.
+3. Use the arrow keys and confirm that the focused card has a visible outline
+   and that screen readers announce its title.
+4. Press Enter and Escape and confirm selection status changes clearly.
+5. Enable OS/browser reduced-motion settings and confirm focused cards no
+   longer scale.
+6. Inspect the page at 320 px width and confirm controls remain reachable.
+
+Automated validation:
+
+```bash
+npm run build
+npm run test:e2e
+```
+
+The Playwright suite checks for detectable axe violations and verifies right,
+down, Enter, and Escape behavior. Automated tools do not replace screen-reader
+testing or visual keyboard testing.

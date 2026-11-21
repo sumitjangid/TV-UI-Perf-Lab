@@ -224,3 +224,41 @@ The analysis script compares synthetic variant conversion rates, reports lift
 and a two-proportion z-score, and labels the result as simulated. It does not
 represent real visitors or prove that either variant is better. A z-score
 above 1.96 or below -1.96 is only an approximate 95% significance threshold.
+
+### How can I validate the variants locally?
+
+Start `npm run dev`, open DevTools, and set a fixed ID in **Application >
+Local Storage**:
+
+```js
+localStorage.setItem("tv-perf-lab-anon-id", "qa-visitor-a");
+location.reload();
+```
+
+Check the `<main>` element for the tile-size class and preview-delay data
+attribute. The assigned variants are `tile-size-standard` /
+`tile-size-large` and `preview-400` / `preview-1200`. After pressing Enter or
+clicking a tile, inspect `tv-perf-lab-experiment-events` to verify the
+`exposure` and `select` records. Reusing an ID restores the same variants;
+changing the ID allows separate validation assignments.
+
+## Milestone 7: Accessibility
+
+### What accessibility improvements were added?
+
+The catalog uses visible heading/list structure, named title buttons, a
+strong focus ring, a skip link, and a live region for focused titles.
+Reduced-motion users receive no focused-card scale animation.
+
+### Why add screen-reader announcements for a TV remote interface?
+
+Focus should be understandable even when sight or visual tracking is limited.
+The live region announces the focused title, while names and row/position
+labels add context to the controls.
+
+### What does the automated check cover?
+
+The axe/Playwright test detects common page violations and verifies keyboard
+focus movement, selection, and Escape behavior. It is useful coverage but
+cannot judge every screen-reader interaction, color-contrast context, or
+layout concern; manual testing remains necessary.

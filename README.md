@@ -17,8 +17,8 @@ so no external image service or API key is needed.
 
 ## Status
 
-Milestone 6: the A/B experiment framework and synthetic analysis are
-implemented.
+Milestone 7: accessibility improvements and automated checks are implemented
+locally and await manual validation.
 
 ## Guides
 
@@ -38,7 +38,31 @@ npm test
 npm run lint
 npm run build
 npm run analyze:experiment
+npm run test:e2e
 ```
+
+## Validate A/B variants locally
+
+1. Start the app with `npm run dev` and open the local URL.
+2. Open browser DevTools, then **Application > Local Storage**.
+3. Set a known anonymous ID and reload:
+
+   ```js
+   localStorage.setItem("tv-perf-lab-anon-id", "qa-visitor-a");
+   location.reload();
+   ```
+
+4. Inspect the `<main>` element in **Elements**:
+   - `tile-size-standard` or `tile-size-large`
+   - `data-preview-delay="preview-400"` or `data-preview-delay="preview-1200"`
+5. Wait for the focus preview, or move focus with the arrow keys.
+6. Press Enter or click a tile to record a selection.
+7. Inspect `tv-perf-lab-experiment-events` in Local Storage. Each entry
+   identifies the visitor, experiment, variant, event type, and timestamp.
+
+Use different `tv-perf-lab-anon-id` values to inspect different assignments.
+The same ID remains assigned to the same variants after a reload. Clearing
+both local-storage keys starts a clean local test.
 
 ## Benchmark
 
