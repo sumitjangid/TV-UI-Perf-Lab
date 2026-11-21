@@ -46,8 +46,10 @@ describe("focus reducer", () => {
     state = focusReducer(state, moveRight());
     state = focusReducer(state, moveRight());
     state = focusReducer(state, moveDown());
-    equal(state.col, 2);
+    equal(state.col, 0);
 
+    state = focusReducer(state, moveRight());
+    state = focusReducer(state, moveRight());
     state = focusReducer(state, moveRight());
     state = focusReducer(state, moveUp());
     equal(state.col, 2);
@@ -64,7 +66,7 @@ describe("focus reducer", () => {
 
     state = focusReducer(state, moveDown());
     equal(state.row, 1);
-    equal(state.col, 1);
+    equal(state.col, 0);
 
     state = focusReducer(state, moveUp());
     equal(state.row, 0);
@@ -106,7 +108,7 @@ describe("focus reducer", () => {
     }
     state = focusReducer(state, moveDown());
     state = focusReducer(state, setRowLengths([2, 3]));
-    equal(state.col, 2);
+    equal(state.col, 0);
 
     state = focusReducer(state, moveUp());
     equal(state.col, 1);

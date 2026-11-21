@@ -52,10 +52,10 @@ dispatch actions without embedding boundary logic in event handlers.
 
 ### Why remember the last column for each row?
 
-When a user moves vertically from a long row into a shorter one, the focus
-must clamp to a valid item. Remembering the intended column lets the user
-return to that position when they move back to the longer row, rather than
-losing their place.
+Each row remembers the column the user last used in it. An unvisited row
+starts at column zero instead of carrying the column from another row. When
+the user moves back to a visited row, their position is restored. Vertical
+movement into a shorter row clamps to a valid item.
 
 ### How does the reducer handle the edges and empty rows?
 
@@ -158,3 +158,48 @@ spacer widths align with actual card geometry. That first rebalancing left
 only four cards mounted on initial load, so we settled on seven cards before
 and six after focus. Spacers preserve omitted content's geometry so fewer
 mounted nodes do not shift the layout.
+
+## Milestone 5: Performance benchmark
+
+### Why benchmark a production preview instead of the development server?
+
+Development tooling, source transforms, and hot-reload support add work that
+users do not get in a production build. Serving the built app makes the
+comparison more representative and keeps the mode differences easier to
+interpret.
+
+### Which measurements does the harness collect?
+
+It records time until the focused card appears, scripted key-to-two-frame
+latency p50/p95, long-task count, JavaScript heap, and DOM-node count. These
+metrics complement each other: DOM size describes rendered work, while key
+latency and long tasks show some of its runtime impact.
+
+### Why repeat scenarios and report medians?
+
+Browser timings vary with background activity and machine load. Three runs
+and a median reduce the influence of a single unusually fast or slow run.
+Comparisons are still meaningful only when the machine and browser setup are
+kept consistent.
+
+### What are the benchmark's limitations?
+
+The key sequence is scripted, not physical remote input. The two-frame timing
+is browser-side and is not end-to-end TV response time. CPU throttling is an
+approximation, and heap/latency values depend on the machine. The harness
+supports comparative investigation; it does not establish a universal
+performance threshold. In one Codespace run, the windowed page had 214 DOM
+nodes versus 30,138 in naive mode; present that as a result from that
+environment, not a portable guarantee.
+
+### Issues and refactors
+
+The plan's example referred to an `optimized` route and a test-only selector.
+We aligned it with the existing default windowed route and focused-card
+selector, added a final-focus assertion, and kept benchmark output in the
+terminal rather than creating dated result files or a new results directory.
+The first Chromium launch also exposed missing Linux shared libraries, so the
+setup notes distinguish downloading the browser from installing its system
+dependencies. The original 132-key sequence also made each benchmark run
+take several minutes, so it was reduced to a shorter deterministic route
+across columns and rows while retaining three repetitions per scenario.

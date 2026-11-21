@@ -74,7 +74,7 @@ const focusSlice = createSlice({
 
       state.row = activeRow;
       state.col = clampIndex(
-        state.lastColByRow[activeRow] ?? state.col,
+        state.lastColByRow[activeRow] ?? 0,
         rowLengths[activeRow],
       );
       state.lastColByRow[activeRow] = state.col;
@@ -146,7 +146,7 @@ function moveToAdjacentRow(state: FocusState, direction: -1 | 1): void {
 
   state.row = nextRow;
   state.col = clampIndex(
-    state.lastColByRow[nextRow] ?? state.col,
+    state.lastColByRow[nextRow] ?? 0,
     state.rowLengths[nextRow],
   );
   state.lastColByRow[nextRow] = state.col;
