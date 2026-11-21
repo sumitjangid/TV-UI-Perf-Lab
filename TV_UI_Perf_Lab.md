@@ -6,6 +6,11 @@ A TV-remote-style browse UI built with React, Redux and TypeScript, designed to 
 
 > **Scope note.** Throttling a desktop browser only *imitates* a low-end TV. Say so in your README. If you can, test once on a real streaming stick or TV browser and report what you saw.
 
+> **Implementation status.** Milestones 1-9 are implemented in this repository.
+> This file remains the original roadmap and implementation reference. Where a
+> snippet differs from the current repository, the current TypeScript files,
+> `package.json`, and learning guide take precedence.
+
 ---
 
 ## 1. What you are building
@@ -16,7 +21,7 @@ A home-screen style browse experience:
 - A large catalog (thousands of titles) that must stay smooth and keep memory flat.
 - A built-in **A/B testing framework** with sticky assignment, event logging and a significance check.
 - A **benchmark harness** that runs the app under CPU throttling and records latency, long tasks and JS heap.
-- **Jest** unit tests, **Playwright** keyboard end-to-end tests and an **accessibility** check, all enforced in CI with a performance budget.
+- **Node test runner** unit tests, **Playwright** keyboard end-to-end tests and an **accessibility** check, all enforced in CI with a performance budget.
 
 Use an **original name, layout and styling**. Do not copy any streaming service's logo, brand or UI design.
 
@@ -29,7 +34,7 @@ Use an **original name, layout and styling**. Do not copy any streaming service'
 | Images | Images mount only for visible tiles and decode asynchronously |
 | Benchmarks | One command produces a JSON report; a naive baseline and the optimized build are compared |
 | A/B tests | Same user always gets the same variant; exposures and clicks are logged; a z-test script reports lift |
-| Tests | Reducers, bucketing and range math covered by Jest; key flows covered by Playwright |
+| Tests | Reducers, bucketing and range math covered by Node tests; key flows covered by Playwright |
 | Accessibility | Visible focus, labels, live announcements, reduced-motion support, no axe violations |
 | CI | Lint, typecheck, unit, e2e and a performance-budget check all run on pull requests |
 
@@ -39,10 +44,10 @@ Use an **original name, layout and styling**. Do not copy any streaming service'
 
 - **Vite + React + TypeScript**
 - **Redux Toolkit** (state, focus model, experiment state)
-- **Jest** + **React Testing Library** (unit and component tests)
+- **Node test runner** via `tsx --test` (unit tests)
 - **Playwright** (keyboard end-to-end tests, performance benchmarks via the Chrome DevTools Protocol)
 - **@axe-core/playwright** (accessibility checks)
-- **ESLint + Prettier**
+- **oxlint** (lint) and **TypeScript**
 - **GitHub Actions** (CI) and **GitHub Pages or Vercel** (demo)
 
 ---
@@ -75,9 +80,7 @@ Scaffold the project (the first time only, before `npm ci` will work):
 npm create vite@latest tv-ui-perf-lab -- --template react-ts
 cd tv-ui-perf-lab
 npm install @reduxjs/toolkit react-redux
-npm install -D jest ts-jest jest-environment-jsdom @types/jest \
-  @testing-library/react @testing-library/jest-dom @testing-library/user-event \
-  @playwright/test @axe-core/playwright
+npm install -D tsx @playwright/test @axe-core/playwright
 ```
 
 Open ports 5173 (dev server) and 4173 (preview of the production build). **Benchmark against the production build** (`npm run build && npm run preview`), never the dev server.
@@ -96,19 +99,14 @@ tv-ui-perf-lab/
 │   ├── store/
 │   │   ├── index.ts
 │   │   ├── focusSlice.ts        # row/column focus model
-│   │   ├── catalogSlice.ts
-│   │   └── experimentSlice.ts
 │   ├── hooks/
 │   │   └── useRemoteKeys.ts     # key handling
-│   ├── components/
-│   │   ├── Shelf.tsx            # one row
-│   │   ├── Tile.tsx
-│   │   └── Home.tsx
 │   ├── lib/
 │   │   ├── virtualRange.ts      # windowing math
 │   │   ├── bucketing.ts         # sticky A/B assignment
 │   │   ├── events.ts            # exposure/click logging
-│   │   └── perfMarks.ts
+│   │   ├── analysis.ts          # z-test math
+│   │   └── performanceBudget.ts # benchmark budget rules
 ├── public/
 │   ├── catalog.json            # generated static data
 │   └── posters/
@@ -117,14 +115,15 @@ tv-ui-perf-lab/
 │   ├── generate-catalog.ts
 │   └── analyze-experiment.ts    # z-test on logged events
 ├── bench/
-│   ├── run.ts                   # Playwright + CDP benchmark
-│   ├── budgets.json             # CI thresholds
-│   └── results/                 # saved reports
+│   └── budgets.json             # CI thresholds
+├── scripts/
+│   ├── benchmark.ts             # Playwright + CDP benchmark
+│   └── check-budgets.ts         # budget gate
 ├── tests/
-│   ├── unit/                    # Jest
+│   ├── *.test.ts                # Node test runner
 │   └── e2e/                     # Playwright
-├── jest.config.ts
 ├── playwright.config.ts
+├── vercel.json
 └── README.md
 ```
 
@@ -295,81 +294,24 @@ around a middle focus position; `?mode=naive` mounts all 40 shelves and
 
 ### Phase 4: Benchmark harness (about 1 day)
 
-`bench/run.ts` uses Playwright and the Chrome DevTools Protocol to throttle the CPU and read metrics.
+`scripts/benchmark.ts` uses Playwright and the Chrome DevTools Protocol to
+compare the production preview in default windowed mode and `?mode=naive`.
+`npm run bench` generates the catalog, builds the app, and starts the preview
+automatically. Install Chromium once with `npx playwright install chromium`.
+On Linux, if Chromium reports missing shared libraries, run
+`npx playwright install-deps chromium` to install system dependencies.
 
-```ts
-import { chromium } from "@playwright/test";
-import { writeFileSync } from "node:fs";
+The harness uses a fixed 1920-by-1080 viewport, CPU slowdown rates of 1x, 4x,
+and 6x, and three runs per mode/rate pair. It reports load time,
+key-response p50/p95, long-task count, JavaScript heap, and DOM nodes in a
+terminal table. Load time and resource metrics use the median across runs;
+latency percentiles use all key samples from the repeated runs. Results are
+machine-dependent, so compare them on the same environment. The key sequence
+is scripted and measures time through two browser animation frames, not
+physical remote-to-screen latency. The command does not create result files.
 
-async function runScenario(mode: "naive" | "optimized", cpuRate: number) {
-  const browser = await chromium.launch();
-  const context = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
-  const page = await context.newPage();
-  const cdp = await context.newCDPSession(page);
-
-  await cdp.send("Emulation.setCPUThrottlingRate", { rate: cpuRate });
-  await cdp.send("Performance.enable");
-
-  const t0 = Date.now();
-  await page.goto(`http://localhost:4173/?mode=${mode}`);
-  await page.waitForSelector("[data-testid='focused-tile']");
-  const loadMs = Date.now() - t0;
-
-  // Record long tasks in the page
-  await page.evaluate(() => {
-    (window as any).__longTasks = 0;
-    new PerformanceObserver((list) => {
-      (window as any).__longTasks += list.getEntries().length;
-    }).observe({ entryTypes: ["longtask"] });
-  });
-
-  // Navigate: 100 right, 20 down, 100 left
-  const keyLatencies: number[] = [];
-  const press = async (key: string) => {
-    const t = await page.evaluate(async (k) => {
-      const start = performance.now();
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: k }));
-      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-      return performance.now() - start;
-    }, key);
-    keyLatencies.push(t);
-  };
-  for (let i = 0; i < 100; i++) await press("ArrowRight");
-  for (let i = 0; i < 20; i++) await press("ArrowDown");
-  for (let i = 0; i < 100; i++) await press("ArrowLeft");
-
-  const { metrics } = await cdp.send("Performance.getMetrics");
-  const heap = metrics.find((m) => m.name === "JSHeapUsedSize")?.value ?? 0;
-  const nodes = await page.evaluate(() => document.querySelectorAll("*").length);
-  const longTasks = await page.evaluate(() => (window as any).__longTasks);
-
-  keyLatencies.sort((a, b) => a - b);
-  const pct = (p: number) => keyLatencies[Math.floor(p * (keyLatencies.length - 1))];
-
-  await browser.close();
-  return {
-    mode, cpuRate, loadMs,
-    keyLatencyP50: pct(0.5), keyLatencyP95: pct(0.95),
-    longTasks, jsHeapMB: +(heap / 1024 / 1024).toFixed(1), domNodes: nodes,
-  };
-}
-
-(async () => {
-  const results = [];
-  for (const mode of ["naive", "optimized"] as const) {
-    for (const rate of [1, 4, 6]) results.push(await runScenario(mode, rate));
-  }
-  writeFileSync(`bench/results/${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(results, null, 2));
-  console.table(results);
-})();
-```
-
-Notes:
-- Run each scenario several times and report the **median**; single runs are noisy.
-- Run on the same machine type each time, and record the Codespace machine size in your README.
-- `Emulation.setCPUThrottlingRate` and `Performance.getMetrics` are Chrome DevTools Protocol calls; confirm names in the CDP docs if they change.
-
-**Done when:** `npm run bench` prints a table comparing naive and optimized at 1x, 4x and 6x CPU slowdown.
+**Done when:** `npm run bench` prints six result rows and confirms that the
+scripted navigation reaches its expected final focus in both modes.
 
 ### Phase 5: A/B testing framework (about 1 day)
 
@@ -430,61 +372,40 @@ Treat |z| > 1.96 as significant at roughly the 95% level, and say so with the sa
 
 ### Phase 6: Tests (about 1 day)
 
-`jest.config.ts`
-```ts
-import type { Config } from "jest";
-
-const config: Config = {
-  preset: "ts-jest",
-  testEnvironment: "jsdom",
-  testMatch: ["<rootDir>/tests/unit/**/*.test.ts?(x)"],
-  setupFilesAfterEach: undefined,
-};
-export default config;
-```
-> If Jest complains about options or ESM, check the current ts-jest and Jest docs. Vite projects often need small config tweaks (for example, `import.meta` handling).
-
-Unit tests to write:
+The repository uses Node's built-in test runner through `tsx --test`
+(`npm test`) instead of Jest. Unit tests cover:
 - `focusSlice`: clamps at edges, remembers column per row, handles rows of different lengths.
 - `windowRange`: edges, small lists, large lists.
 - `assignVariant`: deterministic, roughly even split across many IDs.
+- `zTest`: conversion rates, lift, zero totals and invalid conversions.
+- `evaluateBudgets`: passing metrics and each budget-failure case.
 
-```ts
-import { windowRange } from "../../src/lib/virtualRange";
-
-test("window is clamped at the start", () => {
-  expect(windowRange(0, 100, 7, 6)).toEqual({ start: 0, end: 7 });
-});
-test("window is clamped at the end", () => {
-  expect(windowRange(99, 100, 7, 6)).toEqual({ start: 92, end: 100 });
-});
-```
-
-Playwright end-to-end (`tests/e2e/navigation.spec.ts`):
+Playwright end-to-end (`tests/e2e/accessibility.spec.ts`):
 ```ts
 import { test, expect } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
 
-test("arrow keys move focus and Enter selects", async ({ page }) => {
+test("keyboard navigation keeps focus visible", async ({ page }) => {
   await page.goto("/");
-  const focused = page.getByTestId("focused-tile");
-  const first = await focused.textContent();
+  await expect(page.locator(".title-card.is-focused")).toBeVisible();
   await page.keyboard.press("ArrowRight");
-  await expect(focused).not.toHaveText(first!);
+  await expect(page.locator(".title-card.is-focused")).toBeVisible();
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("Enter");
-  await expect(page.getByTestId("detail-panel")).toBeVisible();
+  await expect(page.getByRole("status")).toContainText("Selected ");
 });
 
-test("focus moves only through keyboard, never gets lost", async ({ page }) => {
+test("home has no detectable accessibility violations", async ({ page }) => {
   await page.goto("/");
-  for (let i = 0; i < 30; i++) await page.keyboard.press("ArrowRight");
-  await expect(page.getByTestId("focused-tile")).toBeVisible();
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
 });
 ```
 
-Also test: Back closes the detail panel, and vertical moves remember the column.
+Also test: Escape clears selection and vertical movement restores a row's
+remembered column.
 
-**Done when:** `npm test` and `npx playwright test` both pass locally.
+**Done when:** `npm test` and `npm run test:e2e` both pass locally.
 
 ### Phase 7: Accessibility (about 3 hours)
 
@@ -540,7 +461,7 @@ jobs:
       - run: npm run build
       - run: npm run preview &
       - run: npx wait-on http://localhost:4173
-      - run: npx playwright test
+      - run: npm run test:e2e
       - run: npm run bench:check   # compares the latest bench run with bench/budgets.json
 ```
 `bench:check` is a small script you write: it runs the optimized scenario and exits non-zero if any value exceeds its budget. CI machines are slower and noisier than your Codespace, so give budgets headroom and compare relative regressions where you can.
@@ -559,9 +480,9 @@ jobs:
 
 - One-paragraph description and a GIF of keyboard navigation
 - Architecture diagram: store, key handler, windowing, event logging
-- **Results table**: naive vs optimized at 1x, 4x and 6x CPU slowdown (load time, key latency p50 and p95, long tasks, JS heap, DOM nodes), with the machine specs and the number of runs
+- **Results table**: windowed vs naive at 1x, 4x and 6x CPU slowdown (load time, key latency p50 and p95, long tasks, JS heap, DOM nodes), with the machine specs and the number of runs
 - A/B framework explanation and the simulated-data disclaimer
-- Test strategy: what Jest covers, what Playwright covers, how the performance gate works
+- Test strategy: what the Node test runner covers, what Playwright benchmarks, and how a future performance gate would work
 - Accessibility notes, including what automated tools cannot catch
 - Limitations: desktop throttling is not real TV hardware; images are placeholders; data is synthetic
 - "What I would do next": real-device testing, a Web Worker for data prep, low-memory image formats, real telemetry
@@ -594,11 +515,11 @@ If time is short, stop after Phase 4. Navigation, windowing and a measured bench
 
 ## 9. Prompts to paste into Copilot Chat or Claude Code
 
-**Scaffold and focus model:** "Create a Vite React TypeScript app with Redux Toolkit. Implement a `focusSlice` with `row`, `col`, `lastColByRow` and `rowLengths`, plus moveUp/Down/Left/Right reducers that clamp at edges and remember the last column for each row. Write Jest tests for edge cases."
+**Scaffold and focus model:** "Create a Vite React TypeScript app with Redux Toolkit. Implement a `focusSlice` with `row`, `col`, `lastColByRow` and `rowLengths`, plus moveUp/Down/Left/Right reducers that clamp at edges and remember the last column for each row. Write Node test-runner tests for edge cases."
 
-**Windowing:** "Add row and tile windowing to the Home screen. Render only rows from focusedRow-2 to focusedRow+3 and tiles from focusedCol-3 to focusedCol+10. Use transform-based movement and a fixed tile size. Add a `?mode=naive` flag that renders everything for benchmarking."
+**Windowing:** "Add row and tile windowing to the Home screen. Render at most 6 rows and 14 tiles per row, with a larger buffer behind focus so the initial viewport stays populated. Use fixed-size spacers that match the rendered item dimensions. Add a `?mode=naive` flag that renders everything for benchmarking."
 
-**Benchmark:** "Write `bench/run.ts` using Playwright and a CDP session. Throttle CPU at 1x, 4x and 6x, load the built app in naive and optimized modes, send 220 key presses, and record load time, key latency p50 and p95, long tasks, JSHeapUsedSize and DOM node count. Save JSON and print a table."
+**Benchmark:** "Write `scripts/benchmark.ts` using Playwright and a CDP session. Compare the production preview in default windowed and `?mode=naive` modes at 1x, 4x and 6x CPU slowdown. Repeat each scenario three times, measure load time, key-to-two-frame p50/p95 latency, long tasks, JS heap and DOM nodes, verify the final focus, and print a summary table without creating result files."
 
 **A/B framework:** "Implement sticky variant assignment with an FNV-1a hash of experimentKey and userId, an events logger for exposure and select, and `scripts/analyze-experiment.ts` that computes select rate per variant and a two-proportion z-test."
 
@@ -610,8 +531,6 @@ If time is short, stop after Phase 4. Navigation, windowing and a measured bench
 
 - React: react.dev
 - Redux Toolkit: redux-toolkit.js.org
-- Jest: jestjs.io
-- Testing Library: testing-library.com
 - Playwright: playwright.dev
 - Chrome DevTools Protocol (Emulation, Performance domains): chromedevtools.github.io/devtools-protocol
 - axe-core for Playwright: github.com/dequelabs/axe-core-npm

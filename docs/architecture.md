@@ -44,6 +44,18 @@ flowchart TB
     playwright --> preview["Vite production preview"]
   end
 
+  subgraph experiments["A/B experiments"]
+    app --> bucketing["src/lib/bucketing.ts<br/>sticky variants"]
+    app --> events["src/lib/events.ts<br/>exposure and selection"]
+    events --> localStorage["Browser localStorage"]
+  end
+
+  subgraph quality["Testing and quality gates"]
+    tests --> axe["Playwright + axe-core"]
+    benchScript --> budget["scripts/check-budgets.ts"]
+    budget --> ci["GitHub Actions"]
+  end
+
   preview -->|"serves built app"| app
   data -->|"fetches static JSON"| app
 ```
@@ -92,7 +104,11 @@ JavaScript.
 | `scripts/analyze-experiment.ts` | Prints clearly labeled synthetic experiment analysis. |
 | `bench/budgets.json` | Sets performance limits for the windowed 4× CI scenario. |
 | `scripts/check-budgets.ts` | Loads benchmark JSON and reports budget failures. |
+| `playwright.config.ts` | Starts the production preview and runs e2e tests. |
+| `tests/e2e/accessibility.spec.ts` | Checks axe violations and keyboard behavior. |
+| `docs/demo-script.md` | Provides a short presentation and demo sequence. |
 | `vite.config.ts` | Configures the Vite + React development and build toolchain. |
+| `vercel.json` | Configures Vercel to build with Vite and serve the `dist` output. |
 
 ### Browser startup, step by step
 

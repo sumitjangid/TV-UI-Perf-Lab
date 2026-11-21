@@ -1,7 +1,13 @@
 # TV UI Performance Lab
 
-A keyboard-first TV browsing prototype for building and measuring responsive
-interfaces under constrained conditions. The catalog is synthetic.
+A portfolio-ready keyboard-first TV browsing prototype for measuring responsive
+UI behavior under constrained conditions. The catalog is synthetic and uses
+local placeholder posters, so the app has no external data or image dependency.
+
+## Live demo
+
+Deploy the production build to Vercel, then replace this line with the public
+URL. The repository is Vercel-ready through `vercel.json`.
 
 ## Getting started
 
@@ -17,7 +23,7 @@ so no external image service or API key is needed.
 
 ## Status
 
-Milestone 8: CI and performance budgets are implemented locally.
+Milestone 9: deployment configuration and project polish are implemented.
 
 ## Guides
 
@@ -28,6 +34,8 @@ Milestone 8: CI and performance budgets are implemented locally.
   and how it is expected to grow.
 - [Design system guide](docs/design-system.md): current visual styles and the
   principles for extending them.
+- [Demo script](docs/demo-script.md): a short walkthrough of the finished
+  project.
 
 ## Checks
 
@@ -70,3 +78,90 @@ Install Chromium once with `npx playwright install chromium`, then run
 `npm run bench` to compare windowed and naive rendering under CPU throttling.
 On Linux, if Chromium reports missing shared libraries, install them with
 `npx playwright install-deps chromium`.
+
+## Architecture
+
+- **Catalog generation:** a Node script creates 40 rows and 250 synthetic
+  titles per row.
+- **State:** Redux Toolkit stores the active row, column, row lengths, and
+  each row's remembered position.
+- **Navigation:** the remote-key hook dispatches movement actions; window helpers
+  decide which rows and cards remain mounted.
+- **Comparison:** `?mode=naive` disables windowing for benchmark comparison.
+- **Experiments:** hash bucketing creates sticky local assignments, and local
+  storage receives exposure and selection events.
+- **Quality:** Node tests cover focus/range/statistics logic, Playwright and axe
+  cover keyboard/accessibility behavior, and GitHub Actions run a benchmark
+  performance budget.
+
+See [the architecture guide](docs/architecture.md) for the full flow.
+
+## Reference benchmark
+
+Reference values from a Codespace run using Chromium 1920 × 1080, with three
+repetitions per scenario:
+
+| Mode | CPU | Load (ms) | Key p50/p95 (ms) | Long tasks | Heap (MB) | DOM nodes |
+|---|---:|---:|---:|---:|---:|---:|
+| Windowed | 1x | 195.1 | 33.4 / 62.1 | 0 | 5.0 | 214 |
+| Windowed | 4x | 605.9 | 36.1 / 81.1 | 2 | 5.0 | 214 |
+| Windowed | 6x | 735.7 | 36.2 / 76.8 | 4 | 5.0 | 214 |
+| Naive | 1x | 1,146.3 | 70.2 / 138.9 | 19 | 29.4 | 30,138 |
+| Naive | 4x | 4,417.1 | 281.1 / 417.4 | 34 | 41.9 | 30,138 |
+| Naive | 6x | 6,557.1 | 402.2 / 620.5 | 35 | 39.1 | 30,138 |
+
+These values are environment-specific observations, not portable guarantees.
+The benchmark measures browser-side key-to-two-frame latency, not physical
+remote-to-screen latency.
+
+## A/B framework
+
+The app demonstrates:
+
+- Standard versus large title cards.
+- A 400 ms versus 1200 ms focused-title preview delay.
+
+The browser stores a stable anonymous ID and experiment events locally.
+`npm run analyze:experiment` prints explicitly labeled synthetic results.
+Synthetic conversion lift is not real customer evidence.
+
+## Accessibility
+
+The app includes a skip link, visible focus ring, list and heading semantics,
+accessible title names, live focus announcements, and reduced-motion handling.
+The Playwright/axe suite checks detectable violations and keyboard behavior,
+but does not replace screen-reader and visual testing.
+
+## Limitations
+
+- Synthetic catalog data and placeholder posters are not production content.
+- Desktop Chromium CPU throttling approximates constrained devices; it is not
+  real TV hardware.
+- Browser heap and timing values vary between machines and runs.
+- Local events are not sent to a server and should not be used as real telemetry.
+- Automated accessibility checks cannot catch every user-experience issue.
+
+## What I would do next
+
+- Test on real TV hardware and physical remotes.
+- Use real title images with modern formats and image fallbacks.
+- Move larger data preparation into a Web Worker or a server-side API.
+- Send privacy-aware production telemetry to a real experiment backend.
+- Establish persistent benchmark history and compare pull requests by relative
+  regression rather than fixed machine-dependent values.
+
+## Deploy to Vercel
+
+The included `vercel.json` uses Vite's production build and serves `dist`.
+
+1. Push the repository to GitHub.
+2. Import the repository in Vercel.
+3. Keep the framework preset as Vite.
+4. Use `npm run build` as the build command and `dist` as the output directory,
+   or import the checked-in `vercel.json` configuration.
+5. Deploy and add the live URL to the README.
+
+## Credits
+
+- React, Redux Toolkit, Vite, TypeScript, Playwright, axe-core, and oxlint.
+- A local SVG placeholder poster is used instead of third-party image services.

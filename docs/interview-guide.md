@@ -276,3 +276,18 @@ that kind of product-performance change on pushes and pull requests.
 CI checks the windowed mode at 4× CPU slowdown. Its limits cover load time,
 p95 key response, JavaScript heap, DOM nodes, and long tasks. The limits use
 measured reference values plus enough headroom for slower shared runners.
+
+## Milestone 9: Deploy and polish
+
+### What is needed for a complete portfolio result?
+
+The deployed URL, a short demo, clear benchmark evidence, and honest
+limitations make the implementation understandable outside the source
+repository. Synthetic data, placeholder media, and browser throttling should
+always be described as simulations or approximations.
+
+### How should the project be deployed?
+
+Vite builds into `dist`, so Vercel can use the Vite preset or the checked-in
+`vercel.json`. The deployment should run the regular build locally before
+publishing and should be tested on the live URL for navigation and accessibility.

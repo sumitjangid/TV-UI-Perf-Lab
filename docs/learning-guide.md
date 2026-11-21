@@ -422,3 +422,31 @@ The windowed 4× budgets leave room for runner variation instead of treating
 one reference run as an exact pass/fail target. The budget is meant to catch
 large regressions such as mounting the entire catalog or substantially
 slowing focus updates.
+
+## Milestone 9: Deploy and polish
+
+### What we prepared
+
+- A Vercel configuration for Vite builds and static output.
+- A complete README with benchmark evidence, architecture, experiments,
+  accessibility, limitations, and next steps.
+- A two-minute [demo script](demo-script.md).
+- A deployment checklist that leaves the public URL for the person deploying
+  the project.
+
+### Deployment checks
+
+Before deployment, run:
+
+```bash
+npm ci
+npm run generate:catalog
+npm test
+npm run lint
+npm run build
+npm run test:e2e
+```
+
+Vercel should build the app with `npm run build` and serve `dist`. After the
+first deployment, record the live URL in the README and test keyboard,
+selection, naive mode, and both A/B assignments against the deployed build.

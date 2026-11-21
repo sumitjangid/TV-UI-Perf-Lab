@@ -45,7 +45,7 @@ mouse:
 | Subtle border | `rgb(194 214 230 / 20%)` | Title cards |
 | Typography | Inter, then system sans-serif fallbacks | Global font stack |
 | Content width | `72rem` maximum | Header and catalog |
-| Card size | `9rem` width; poster aspect ratio `2 / 3` | Title cards |
+| Card size | `9rem` standard or `10.5rem` large; poster aspect ratio `2 / 3` | Title cards |
 | Corners | `0.75rem` card, `0.4rem` poster | Browsing UI |
 
 Colors and dimensions are currently written directly in `src/index.css` and
@@ -96,8 +96,8 @@ has a real shared meaning or expected reuse.
 
 ### Title cards
 
-- Cards currently use a fixed `9rem` width and posters use a `2 / 3` aspect
-  ratio so shelves stay aligned. Border-box sizing keeps the card's rendered
+- Cards use a `9rem` standard or `10.5rem` large width and posters use a `2 / 3`
+  aspect ratio so shelves stay aligned. Border-box sizing keeps the card's rendered
   width consistent with the windowing spacer calculations.
 - Use a local/fallback image path and meaningful alternative text when the
   poster conveys title information. The current placeholder poster is
@@ -118,9 +118,10 @@ has a real shared meaning or expected reuse.
 
 ### Focus and selection
 
-The focused title card currently uses a bright outline and a small scale
-increase. The selected title is announced in a live status message; selection
-does not yet open a detail page.
+The focused title card uses a bright outline, contrasting shadow, and a small
+scale increase. A screen-reader live region announces the focused title, and
+the selection status announces Enter/click results. Selection does not open a
+detail page.
 
 - Focus must be visible without relying on color alone; combine contrast with
   an outline, scale, or other clear shape treatment.

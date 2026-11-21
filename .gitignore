@@ -12,6 +12,8 @@ dist
 dist-ssr
 *.local
 bench/latest.json
+test-results/
+playwright-report/
 
 # Editor directories and files
 .vscode/*
