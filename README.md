@@ -17,8 +17,7 @@ so no external image service or API key is needed.
 
 ## Status
 
-Milestone 7: accessibility improvements and automated checks are implemented
-locally and await manual validation.
+Milestone 8: CI and performance budgets are implemented locally.
 
 ## Guides
 
@@ -39,6 +38,7 @@ npm run lint
 npm run build
 npm run analyze:experiment
 npm run test:e2e
+npm run bench:check
 ```
 
 ## Validate A/B variants locally

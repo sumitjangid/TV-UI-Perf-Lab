@@ -1,6 +1,8 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
+import { mkdir, writeFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
 import { chromium, type Browser } from "playwright";
 
 declare global {
@@ -236,6 +238,17 @@ async function main(): Promise<void> {
     }
 
     console.table(results);
+
+    const jsonFlagIndex = process.argv.indexOf("--json");
+    const outputPath = jsonFlagIndex >= 0
+      ? process.argv[jsonFlagIndex + 1]
+      : undefined;
+    if (outputPath) {
+      const absolutePath = resolve(outputPath);
+      await mkdir(dirname(absolutePath), { recursive: true });
+      await writeFile(absolutePath, `${JSON.stringify(results, null, 2)}\n`);
+      console.log(`Benchmark JSON written to ${outputPath}`);
+    }
   } finally {
     try {
       await browser?.close();

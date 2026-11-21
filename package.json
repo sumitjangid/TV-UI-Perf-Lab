@@ -12,6 +12,7 @@
     "test": "tsx --test tests/*.test.ts",
     "test:e2e": "playwright test",
     "bench": "npm run generate:catalog && npm run build && tsx scripts/benchmark.ts",
+    "bench:check": "npm run generate:catalog && npm run build && tsx scripts/benchmark.ts --json bench/latest.json && tsx scripts/check-budgets.ts",
     "analyze:experiment": "tsx scripts/analyze-experiment.ts"
   },
   "dependencies": {

@@ -262,3 +262,17 @@ The axe/Playwright test detects common page violations and verifies keyboard
 focus movement, selection, and Escape behavior. It is useful coverage but
 cannot judge every screen-reader interaction, color-contrast context, or
 layout concern; manual testing remains necessary.
+
+## Milestone 8: CI and performance budgets
+
+### Why use a CI performance budget?
+
+Unit tests catch implementation errors, but they do not catch a windowing
+regression that remounts thousands of cards. The benchmark budget detects
+that kind of product-performance change on pushes and pull requests.
+
+### Which scenario is gated?
+
+CI checks the windowed mode at 4× CPU slowdown. Its limits cover load time,
+p95 key response, JavaScript heap, DOM nodes, and long tasks. The limits use
+measured reference values plus enough headroom for slower shared runners.

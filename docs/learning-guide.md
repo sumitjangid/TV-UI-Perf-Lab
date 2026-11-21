@@ -400,3 +400,25 @@ npm run test:e2e
 The Playwright suite checks for detectable axe violations and verifies right,
 down, Enter, and Escape behavior. Automated tools do not replace screen-reader
 testing or visual keyboard testing.
+
+## Milestone 8: CI and performance budgets
+
+### What we built
+
+- `.github/workflows/ci.yml` runs lint, unit tests, the production build,
+  Playwright/axe tests, and the benchmark budget check.
+- `bench/budgets.json` defines limits for the windowed 4× benchmark scenario.
+- `scripts/benchmark.ts` can write machine-readable benchmark results with
+  `--json`.
+- `scripts/check-budgets.ts` reads those results and fails if a measured metric
+  exceeds its configured limit.
+- `npm run bench:check` runs the benchmark and immediately validates the
+  windowed 4× row against the budget.
+
+### Why the budgets have headroom
+
+CI and local machines do not have identical CPU, memory, or browser timing.
+The windowed 4× budgets leave room for runner variation instead of treating
+one reference run as an exact pass/fail target. The budget is meant to catch
+large regressions such as mounting the entire catalog or substantially
+slowing focus updates.

@@ -64,6 +64,8 @@ JavaScript.
   repeatable keyboard scenarios in Chromium, and collects runtime metrics.
 - The **experiment modules** assign stable variants and record exposure/select
   events locally for the A/B framework.
+- The **CI budget check** benchmarks the production app and fails on windowed
+  4× regressions outside configured limits.
 
 ## Responsibilities of the current files
 
@@ -88,6 +90,8 @@ JavaScript.
 | `src/lib/events.ts` | Stores experiment exposure and selection events locally. |
 | `src/lib/analysis.ts` | Computes two-proportion z-test results and conversion lift. |
 | `scripts/analyze-experiment.ts` | Prints clearly labeled synthetic experiment analysis. |
+| `bench/budgets.json` | Sets performance limits for the windowed 4× CI scenario. |
+| `scripts/check-budgets.ts` | Loads benchmark JSON and reports budget failures. |
 | `vite.config.ts` | Configures the Vite + React development and build toolchain. |
 
 ### Browser startup, step by step

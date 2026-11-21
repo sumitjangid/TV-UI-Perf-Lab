@@ -1,0 +1,9 @@
+{
+  "windowed_cpu4x": {
+    "loadMs": 1500,
+    "keyLatencyP95Ms": 150,
+    "jsHeapMB": 40,
+    "domNodes": 500,
+    "longTasks": 10
+  }
+}
