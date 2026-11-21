@@ -37,6 +37,14 @@ flowchart TB
     store --> reducer
   end
 
+  subgraph benchmark["Performance benchmark (separate Node process)"]
+    benchCommand["npm run bench"] --> benchScript["scripts/benchmark.ts"]
+    benchScript --> playwright["Playwright + Chromium"]
+    playwright --> cdp["CDP<br/>CPU throttle + metrics"]
+    playwright --> preview["Vite production preview"]
+  end
+
+  preview -->|"serves built app"| app
   data -->|"fetches static JSON"| app
 ```
 
@@ -52,6 +60,10 @@ JavaScript.
   owns navigation transitions, while the app renders the focused position.
 - The **range helper** computes end-exclusive row and item windows. Tests cover
   both focus transitions and window boundaries.
+- The **benchmark runner** builds and serves the production app, drives
+  repeatable keyboard scenarios in Chromium, and collects runtime metrics.
+- The **experiment modules** assign stable variants and record exposure/select
+  events locally for the A/B framework.
 
 ## Responsibilities of the current files
 
@@ -71,6 +83,11 @@ JavaScript.
 | `src/lib/virtualRange.ts` | Calculates end-exclusive row and item windows around focus. |
 | `tests/focusSlice.test.ts` | Tests focus movement rules using Node's built-in test runner. |
 | `tests/virtualRange.test.ts` | Tests range boundaries, empty lists, and window sizes. |
+| `scripts/benchmark.ts` | Compares windowed and naive production builds using Playwright and Chrome DevTools Protocol metrics. |
+| `src/lib/bucketing.ts` | Assigns repeatable experiment variants and creates an anonymous visitor ID. |
+| `src/lib/events.ts` | Stores experiment exposure and selection events locally. |
+| `src/lib/analysis.ts` | Computes two-proportion z-test results and conversion lift. |
+| `scripts/analyze-experiment.ts` | Prints clearly labeled synthetic experiment analysis. |
 | `vite.config.ts` | Configures the Vite + React development and build toolchain. |
 
 ### Browser startup, step by step
@@ -122,12 +139,15 @@ before the data is passed to the rendering logic.
 - **Oxlint** checks the source with the repository's configured rules.
 - **Node's built-in test runner**, launched through `tsx`, tests the focus
   reducer without adding a separate test framework.
+- **Playwright and Chrome DevTools Protocol** drive the production preview
+  through repeatable CPU-throttled scenarios and collect performance metrics.
 - **The generator** is a separate Node-side script. The generated catalog is
   served as static JSON, not embedded in the application JavaScript.
 
 The current validation commands are `npm test`, `npm run lint`, and
-`npm run build`. Building successfully confirms the current TypeScript and
-bundling pipeline; it does not measure runtime scrolling performance.
+`npm run build`. `npm run bench` separately measures a production preview;
+its results are machine-dependent and are not a substitute for testing on a
+target TV device.
 
 ## How the architecture should grow
 
@@ -146,9 +166,8 @@ is to preserve clear boundaries as those features arrive:
 4. **Rendering boundary:** the initial windowed implementation is in place.
    Compare it with naive mode, then use benchmark results to tune range sizes
    and image-loading behavior.
-5. **Measurement boundary:** keep performance instrumentation and benchmark
-   output separate from product UI logic so results can be repeated and
-   compared.
+5. **Measurement boundary:** the benchmark runner is separate from product UI
+   logic. Extend it only when a new measurement can be repeated and compared.
 
 The current UI uses Redux Toolkit for shared focus state. Additional
 application state should be added only when a later milestone needs it.

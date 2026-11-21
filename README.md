@@ -17,9 +17,8 @@ so no external image service or API key is needed.
 
 ## Status
 
-Milestone 4: row and tile windowing are implemented and validated. The
-windowed mode keeps the rendered DOM bounded while preserving visible focus
-and shelf layout.
+Milestone 6: the A/B experiment framework and synthetic analysis are
+implemented.
 
 ## Guides
 
@@ -38,4 +37,12 @@ npm run generate:catalog
 npm test
 npm run lint
 npm run build
+npm run analyze:experiment
 ```
+
+## Benchmark
+
+Install Chromium once with `npx playwright install chromium`, then run
+`npm run bench` to compare windowed and naive rendering under CPU throttling.
+On Linux, if Chromium reports missing shared libraries, install them with
+`npx playwright install-deps chromium`.

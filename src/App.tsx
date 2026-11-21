@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import "./App.css";
 import { useRemoteKeys } from "./hooks/useRemoteKeys";
+import { assignVariant, getOrCreateUserId } from "./lib/bucketing";
+import { logExperimentEvent } from "./lib/events";
 import { rowFocusColumn, windowRange } from "./lib/virtualRange";
 import type { AppDispatch, RootState } from "./store";
 import {
@@ -25,11 +27,9 @@ const ROWS_BEFORE = 2;
 const ROWS_AFTER = 3;
 const ITEMS_BEFORE = 7;
 const ITEMS_AFTER = 6;
-const TILE_WIDTH_REM = 9;
 const TILE_GAP_REM = 1;
 const SHELF_HEIGHT_REM = 20;
 const SHELF_GAP_REM = 2;
-const TILE_STEP_REM = TILE_WIDTH_REM + TILE_GAP_REM;
 const SHELF_STEP_REM = SHELF_HEIGHT_REM + SHELF_GAP_REM;
 const isNaiveMode =
   new URLSearchParams(window.location.search).get("mode") === "naive";
@@ -68,6 +68,41 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<CatalogItem | null>(null);
+  const [preview, setPreview] = useState<{
+    row: number;
+    col: number;
+    title: string;
+  } | null>(null);
+  const userId = getOrCreateUserId();
+  const tileVariant = assignVariant(
+    userId,
+    "tile-size",
+    ["standard", "large"] as const,
+  );
+  const previewVariant = assignVariant(
+    userId,
+    "preview-delay",
+    ["preview-400", "preview-1200"] as const,
+  );
+  const tileWidthRem = tileVariant === "large" ? 10.5 : 9;
+  const tileStepRem = tileWidthRem + TILE_GAP_REM;
+  const previewDelayMs =
+    previewVariant === "preview-400" ? 400 : 1200;
+
+  useEffect(() => {
+    logExperimentEvent({
+      userId,
+      experiment: "tile-size",
+      variant: tileVariant,
+      type: "exposure",
+    });
+    logExperimentEvent({
+      userId,
+      experiment: "preview-delay",
+      variant: previewVariant,
+      type: "exposure",
+    });
+  }, [previewVariant, tileVariant, userId]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -109,9 +144,21 @@ function App() {
   const selectFocusedItem = useCallback(() => {
     const item = catalog[focus.row]?.items[focus.col];
     if (item) {
+      logExperimentEvent({
+        userId,
+        experiment: "tile-size",
+        variant: tileVariant,
+        type: "select",
+      });
+      logExperimentEvent({
+        userId,
+        experiment: "preview-delay",
+        variant: previewVariant,
+        type: "select",
+      });
       setSelectedItem(item);
     }
-  }, [catalog, focus.col, focus.row]);
+  }, [catalog, focus.col, focus.row, previewVariant, tileVariant, userId]);
 
   const clearSelection = useCallback(() => {
     setSelectedItem(null);
@@ -125,8 +172,36 @@ function App() {
     }
   }, [catalog.length, focus.col, focus.row]);
 
+  useEffect(() => {
+    const item = catalog[focus.row]?.items[focus.col];
+    if (!item) {
+      return;
+    }
+    const timeout = window.setTimeout(() => {
+      setPreview({ row: focus.row, col: focus.col, title: item.title });
+    }, previewDelayMs);
+    return () => window.clearTimeout(timeout);
+  }, [catalog, focus.col, focus.row, previewDelayMs]);
+
+  const previewTitle =
+    preview?.row === focus.row && preview.col === focus.col
+      ? preview.title
+      : null;
+
   function selectItem(row: number, col: number, item: CatalogItem): void {
     dispatch(setFocusPosition({ row, col }));
+    logExperimentEvent({
+      userId,
+      experiment: "tile-size",
+      variant: tileVariant,
+      type: "select",
+    });
+    logExperimentEvent({
+      userId,
+      experiment: "preview-delay",
+      variant: previewVariant,
+      type: "select",
+    });
     setSelectedItem(item);
   }
 
@@ -143,7 +218,10 @@ function App() {
     : windowRange(focus.row, catalog.length, ROWS_BEFORE, ROWS_AFTER);
 
   return (
-    <main className="app-shell">
+    <main
+      className={`app-shell tile-size-${tileVariant}`}
+      data-preview-delay={previewVariant}
+    >
       <header className="app-header">
         <p className="eyebrow">A keyboard-first browsing prototype</p>
         <h1>TV UI Performance Lab</h1>
@@ -156,6 +234,11 @@ function App() {
             ? "Naive baseline: all title cards are mounted."
             : "Windowed rendering: visible titles plus a small buffer."}
         </p>
+        {previewTitle && (
+          <p className="title-preview" aria-live="polite">
+            Preview: {previewTitle}
+          </p>
+        )}
       </header>
 
       <p className="selection-status" role="status" aria-live="polite">
@@ -207,7 +290,7 @@ function App() {
                       aria-hidden="true"
                       className="tile-spacer"
                       style={{
-                        width: `${itemRange.start * TILE_STEP_REM - TILE_GAP_REM}rem`,
+                        width: `${itemRange.start * tileStepRem - TILE_GAP_REM}rem`,
                       }}
                     />
                   )}
@@ -245,7 +328,7 @@ function App() {
                       aria-hidden="true"
                       className="tile-spacer"
                       style={{
-                        width: `${(row.items.length - itemRange.end) * TILE_STEP_REM - TILE_GAP_REM}rem`,
+                        width: `${(row.items.length - itemRange.end) * tileStepRem - TILE_GAP_REM}rem`,
                       }}
                     />
                   )}

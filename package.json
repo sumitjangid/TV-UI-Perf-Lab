@@ -9,7 +9,9 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "generate:catalog": "tsx scripts/generate-catalog.ts",
-    "test": "tsx --test tests/*.test.ts"
+    "test": "tsx --test tests/*.test.ts",
+    "bench": "npm run generate:catalog && npm run build && tsx scripts/benchmark.ts",
+    "analyze:experiment": "tsx scripts/analyze-experiment.ts"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.15.0",
@@ -23,6 +25,7 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "oxlint": "^1.90.0",
+    "playwright": "^1.65.1",
     "tsx": "^4.20.6",
     "typescript": "~7.0.2",
     "vite": "^8.3.6"

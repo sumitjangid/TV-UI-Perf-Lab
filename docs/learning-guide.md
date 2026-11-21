@@ -306,3 +306,28 @@ performance guarantees.
 | Naive | 1x | 1,146.3 | 70.2 / 138.9 | 19 | 29.4 | 30,138 |
 | Naive | 4x | 4,417.1 | 281.1 / 417.4 | 34 | 41.9 | 30,138 |
 | Naive | 6x | 6,557.1 | 402.2 / 620.5 | 35 | 39.1 | 30,138 |
+
+## Milestone 6: A/B testing framework
+
+### What we built
+
+- `src/lib/bucketing.ts` gives a visitor a deterministic variant using FNV-1a
+  hashing. The variant stays stable through `localStorage`.
+- `src/lib/events.ts` records exposure and selection events with a visitor ID,
+  experiment name, variant, and timestamp.
+- The app runs two experiments: standard versus large tiles and a 400 ms
+  versus 1200 ms focused-title preview delay.
+- `npm run analyze:experiment` prints simulated results for both experiments,
+  including select rates, lift, z-score, and the approximate 95% significance
+  result.
+
+### Why we did it this way
+
+Sticky assignment means refreshes and navigation do not change a visitor's
+variant. Hash bucketing requires no server and remains repeatable. Event
+logging keeps the UI and future analysis tied to one visitor and variant.
+
+The synthetic analysis is intentionally explicit about not representing real
+customers. Browser events can provide real local simulations, but no data is
+sent to a server and synthetic traffic must never be presented as production
+evidence.

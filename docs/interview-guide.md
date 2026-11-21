@@ -203,3 +203,24 @@ setup notes distinguish downloading the browser from installing its system
 dependencies. The original 132-key sequence also made each benchmark run
 take several minutes, so it was reduced to a shorter deterministic route
 across columns and rows while retaining three repetitions per scenario.
+
+## Milestone 6: A/B testing framework
+
+### Why use hash-based sticky assignment?
+
+Hashing the visitor ID and experiment key gives every visitor a repeatable
+variant without server state. The anonymous ID is stored in `localStorage`,
+so the same browser keeps the same assignment across reloads.
+
+### How are exposure and selection events logged?
+
+Each event includes the visitor ID, experiment, variant, event type, and
+timestamp. Exposure is deduplicated per browser/variant, while selection is
+logged when Enter or a tile click selects a title.
+
+### How should synthetic analysis be interpreted?
+
+The analysis script compares synthetic variant conversion rates, reports lift
+and a two-proportion z-score, and labels the result as simulated. It does not
+represent real visitors or prove that either variant is better. A z-score
+above 1.96 or below -1.96 is only an approximate 95% significance threshold.
