@@ -17,8 +17,8 @@ so no external image service or API key is needed.
 
 ## Status
 
-Milestone 2: the Redux Toolkit focus-state model is implemented and tested.
-Keyboard controls and the browsing UI are next.
+Milestone 3: catalog browsing and remote-style keyboard navigation are
+implemented. Windowing and performance measurement are next.
 
 ## Guides
 
@@ -33,6 +33,7 @@ Keyboard controls and the browsing UI are next.
 ## Checks
 
 ```bash
+npm run generate:catalog
 npm test
 npm run lint
 npm run build

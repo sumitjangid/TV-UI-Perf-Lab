@@ -50,9 +50,8 @@ npm run build
 - Named actions for setting row lengths and moving in four directions.
 - Tests that exercise the reducer with Node's built-in test runner.
 
-The reducer is not connected to the React screen yet. That is deliberate: this
-milestone isolates navigation rules from key events and rendering. The
-keyboard hook and browsing components are the next milestone.
+This milestone isolates navigation rules from key events and rendering. The
+next milestone connects the reducer to the React screen.
 
 ### Why the focus model is separate
 
@@ -75,9 +74,9 @@ readable while still producing immutable state. The resulting data remains
 plain and serializable: indexes, row lengths, and remembered columns.
 
 At this milestone, the reducer is not yet attached to a Redux store or React
-provider. The next phase will connect it to the UI; if that integration does
-not benefit from centralized state, we should reconsider the choice rather
-than keeping infrastructure without a use.
+provider. The following milestone connects it to the UI; if that integration
+does not benefit from centralized state, we should reconsider the choice
+rather than keeping infrastructure without a use.
 
 ### Navigation rules
 
@@ -100,3 +99,58 @@ npm test
 npm run lint
 npm run build
 ```
+
+## Milestone 3: Browsing and remote controls
+
+### What we built
+
+- The catalog generator now writes `public/catalog.json`. The app fetches and
+  validates that file instead of bundling all 10,000 records into JavaScript.
+- A Redux store and Provider connect the existing focus reducer to the screen.
+- A remote-key hook maps arrow keys to movement actions, Enter to selecting
+  the focused title, and Escape/Backspace to clearing the selection.
+- The screen renders 40 shelves with 250 title cards each. Exactly one card
+  participates in the tab order, and the focused card has a visible outline.
+- Poster images use native lazy loading. All title-card elements are still
+  rendered; windowing is intentionally left for a later milestone.
+
+### Why we did it this way
+
+- **Serve data separately from app code:** importing the JSON had produced an
+  approximately 1 MB JavaScript chunk. A static JSON request keeps the catalog
+  out of the app bundle and makes the data-loading boundary explicit.
+- **Validate the fetched shape:** TypeScript types do not validate network
+  responses at runtime. The app checks the row and item fields before using
+  the data and displays a visible error if loading or validation fails.
+- **Keep key handling in a hook:** one event listener translates remote-style
+  key events into reducer actions. The reducer remains responsible for
+  navigation rules; the UI is responsible for displaying focus.
+- **Use a single tab stop:** roving `tabIndex` makes the title cards usable
+  with keyboard focus without adding thousands of sequential Tab stops.
+- **Defer windowing:** rendering the full catalog gives us a clear, naive
+  baseline. The next performance milestone can measure and reduce the DOM
+  rather than mixing optimization into the first working interaction.
+
+### Validate
+
+Automated checks:
+
+```bash
+npm run generate:catalog
+npm test
+npm run lint
+npm run build
+```
+
+Manual browser check:
+
+1. Run `npm run dev` and open the local Vite URL.
+2. Wait for the shelves to load and confirm the first title is visibly
+   focused.
+3. Use Left/Right and Up/Down; focus should stay in bounds, skip empty rows,
+   and remember each row's last column.
+4. Press Enter; a live status message should name the selected title.
+5. Press Escape; the selection message should clear. Clicking a different
+   title should update focus and selection.
+6. Confirm the browser requests `/catalog.json` separately from the app's
+   JavaScript bundle.

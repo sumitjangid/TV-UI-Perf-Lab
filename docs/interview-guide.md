@@ -66,9 +66,36 @@ that keyboard events and visible focus are wired to these actions correctly.
 
 ### Why choose Redux Toolkit for this state?
 
-The focus position will be shared by the key handler and multiple browsing
-rows, so a single reducer provides one source of truth for navigation rules.
-Redux Toolkit supplies explicit actions and immutable updates without
-hand-writing reducer boilerplate. At this stage the slice is not yet connected
-to the UI; the next phase will validate whether that shared store is useful in
-practice.
+The focus position is shared by the key handler and multiple browsing rows,
+so a single reducer provides one source of truth for navigation rules. Redux
+Toolkit supplies explicit actions and immutable updates without hand-writing
+reducer boilerplate. The UI now dispatches those actions through the Redux
+store and renders the selected position from state.
+
+## Milestone 3: Browsing and remote controls
+
+### Why fetch the catalog instead of importing it into the app bundle?
+
+The generated catalog has 10,000 entries. Importing it as a JavaScript module
+made the app chunk roughly 1 MB. Serving it as static JSON keeps application
+code and test data separate and lets us observe the data request independently.
+
+### How are remote keys separated from navigation rules?
+
+The key hook maps browser key names to Redux actions. The focus reducer owns
+clamping and row-memory behavior, while React renders the resulting focus.
+That separation makes input mapping and state transitions easier to reason
+about and test independently.
+
+### Why is only one title card in the tab order?
+
+Roving `tabIndex` keeps keyboard focus available without requiring a user to
+Tab through 10,000 buttons. Arrow keys move the single tab stop according to
+the same row/column model used for TV-remote navigation.
+
+### What performance work remains?
+
+This milestone intentionally mounts all title cards so we have a simple
+baseline. The next milestone should measure DOM size, load/render behavior,
+and navigation latency, then introduce windowing if the measurements show it
+is needed.

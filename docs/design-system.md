@@ -37,12 +37,14 @@ mouse:
 | Page background | `#101820` | Global page and app shell |
 | Primary text | `#f5f7fa` | Main headings and inherited text |
 | Muted text | `#9fb3c5`, `#c3d0db` | Eyebrow labels and supporting copy |
-| Badge text | `#d7e3ec` | Status badges |
-| Panel surface | `#1f303e` to `#14202b` gradient | Welcome panel |
-| Subtle border | `rgb(194 214 230 / 18%)` to `/ 20%` | Panel and badges |
+| Card text | `#d7e3ec` | Title cards |
+| Card surface | `rgb(7 15 22 / 35%)` | Title cards |
+| Poster background | `#243746` | Local placeholder image |
+| Subtle border | `rgb(194 214 230 / 20%)` | Title cards |
 | Typography | Inter, then system sans-serif fallbacks | Global font stack |
-| Content width | `72rem` maximum | Header and welcome panel |
-| Corners | `1.25rem` panel, pill-shaped badges | Current surfaces |
+| Content width | `72rem` maximum | Header and catalog |
+| Card size | `9rem` width; poster aspect ratio `2 / 3` | Title cards |
+| Corners | `0.75rem` card, `0.4rem` poster | Browsing UI |
 
 Colors and dimensions are currently written directly in `src/index.css` and
 `src/App.css`; they are not yet CSS variables or a component library.
@@ -92,9 +94,12 @@ has a real shared meaning or expected reuse.
 
 ### Title cards
 
-- Give posters a consistent aspect ratio and image box so rows stay aligned.
+- Cards currently use a fixed `9rem` width and posters use a `2 / 3` aspect
+  ratio so shelves stay aligned.
 - Use a local/fallback image path and meaningful alternative text when the
-  poster conveys title information.
+  poster conveys title information. The current placeholder poster is
+  decorative, so its `alt` text is empty and the visible title labels the
+  button.
 - Keep the title readable when the poster is unavailable or image loading is
   delayed.
 - Make the entire focus target large enough for clear TV use.
@@ -110,8 +115,9 @@ has a real shared meaning or expected reuse.
 
 ### Focus and selection
 
-The current welcome screen has no interactive card controls, so it does not
-yet define a production focus ring. When interactive elements are added:
+The focused title card currently uses a bright outline and a small scale
+increase. The selected title is announced in a live status message; selection
+does not yet open a detail page.
 
 - Focus must be visible without relying on color alone; combine contrast with
   an outline, scale, or other clear shape treatment.
@@ -130,7 +136,7 @@ yet define a production focus ring. When interactive elements are added:
 - Do not communicate status only through color.
 - Add motion only when it clarifies a focus transition; respect
   `prefers-reduced-motion` when animation is introduced.
-- Check the completed interface with keyboard-only interaction and automated
+- Check the interface with keyboard-only interaction now, then add automated
   accessibility checks in the later accessibility milestone.
 
 ## Performance and visual quality
@@ -143,5 +149,6 @@ them and simplify the costly treatment rather than removing all visual
 hierarchy.
 
 For each new component, define its purpose, dimensions, typography, and states
-before adding decorative details. That creates a consistent system without
-turning the first milestone into premature design-system infrastructure.
+before adding decorative details. The current app deliberately renders the
+whole catalog as a baseline; windowing belongs to a later performance
+milestone.

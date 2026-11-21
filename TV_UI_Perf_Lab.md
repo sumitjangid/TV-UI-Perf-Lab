@@ -109,7 +109,10 @@ tv-ui-perf-lab/
 │   │   ├── bucketing.ts         # sticky A/B assignment
 │   │   ├── events.ts            # exposure/click logging
 │   │   └── perfMarks.ts
-│   └── data/catalog.json        # generated
+├── public/
+│   ├── catalog.json            # generated static data
+│   └── posters/
+│       └── poster-placeholder.svg
 ├── scripts/
 │   ├── generate-catalog.ts
 │   └── analyze-experiment.ts    # z-test on logged events
@@ -148,18 +151,16 @@ const catalog = Array.from({ length: ROWS }, (_, r) => ({
     return {
       id,
       title: `Title ${r + 1}.${c + 1}`,
-      // placeholder poster; check that the service is still available,
-      // or swap in locally generated SVG posters
-      poster: `https://picsum.photos/seed/${id}/300/450`,
+      poster: "/posters/poster-placeholder.svg",
     };
   }),
 }));
 
-writeFileSync("src/data/catalog.json", JSON.stringify(catalog));
+writeFileSync("public/catalog.json", JSON.stringify(catalog));
 console.log(`Wrote ${ROWS * TITLES_PER_ROW} titles`);
 ```
 
-**Done when:** `src/data/catalog.json` exists and loads in the app.
+**Done when:** `public/catalog.json` exists and loads in the app.
 
 ### Phase 1: Redux focus model (about 3 hours)
 
@@ -231,7 +232,6 @@ export function useRemoteKeys(onSelect: () => void, onBack: () => void) {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      performance.mark("key-down"); // used by the latency benchmark
       switch (e.key) {
         case "ArrowRight": dispatch(moveRight()); break;
         case "ArrowLeft":  dispatch(moveLeft());  break;
@@ -251,9 +251,9 @@ export function useRemoteKeys(onSelect: () => void, onBack: () => void) {
 ```
 
 Layout rules:
-- Move rows with `transform: translate3d(...)`, not by changing `scrollLeft` or `top`, so animation stays on the compositor.
-- Keep the focused tile at a fixed horizontal position ("focus lock") and slide the row under it. This is the classic TV feel and makes windowing math simple.
-- Use a fixed tile size so you never measure the DOM during navigation.
+- Use native horizontal scrolling for the first working version; focusing a card brings it into view without custom position calculations.
+- Keep card widths and poster aspect ratios fixed so rows remain aligned as focus moves.
+- Defer a transform-based "focus lock" until measurements show native scrolling is not smooth enough. Avoid adding animation before there is a measured need.
 
 **Done when:** you can move through the whole screen with the keyboard, with one clearly visible focused tile.
 

@@ -17,46 +17,52 @@ features already implemented.
 flowchart TB
   subgraph catalog["Catalog preparation (separate Node process)"]
     command["npm run generate:catalog"] --> generator["scripts/generate-catalog.ts"]
-    generator --> data["src/data/catalog.json"]
+    generator --> data["public/catalog.json"]
   end
 
   subgraph browser["Browser runtime (Vite + React)"]
-    html["index.html<br/>#root mount point"] --> entry["src/main.tsx<br/>createRoot + StrictMode"]
-    entry --> app["src/App.tsx<br/>current welcome screen"]
+    html["index.html<br/>#root mount point"] --> entry["src/main.tsx<br/>Provider + createRoot"]
+    entry --> store["src/store/index.ts<br/>Redux store"]
+    store --> app["src/App.tsx<br/>catalog shelves and title cards"]
+    app --> keys["src/hooks/useRemoteKeys.ts<br/>key-to-action mapping"]
+    keys --> store
     entry --> globalStyles["src/index.css<br/>global styles"]
     app --> appStyles["src/App.css<br/>app styles"]
   end
 
-  subgraph focusModel["Focus-state module (tested; UI integration is next)"]
+  subgraph focusModel["Focus-state transitions"]
     tests["tests/focusSlice.test.ts<br/>Node test runner"] --> reducer["src/store/focusSlice.ts<br/>Redux Toolkit reducer"]
+    store --> reducer
   end
 
-  data -. "not imported yet; planned connection" .-> app
+  data -->|"fetches static JSON"| app
 ```
 
-The build-time, browser, and focus-model flows are intentionally distinct:
+The catalog-generation and browser-runtime flows are separate. The browser
+fetches the generated static JSON; the data is not bundled into the app's
+JavaScript.
 
-- The **generator** creates a predictable data fixture on disk.
-- The **browser app** currently renders a project welcome screen. It does not
-  yet import or display `catalog.json`; connecting the data to the browsing UI
-  belongs to a later milestone.
-- The **focus reducer** is implemented and tested independently. The current
-  app does not yet create a Redux store or dispatch its actions; that wiring
-  belongs to the keyboard and browsing UI milestone.
+- The **generator** creates a predictable data fixture in `public/`.
+- The **React app** loads and validates the catalog, then renders shelves and
+  title cards.
+- The **key hook** translates keyboard events to Redux actions. The reducer
+  owns navigation transitions, while the app renders the focused position.
 
 ## Responsibilities of the current files
 
 | File | Responsibility |
 |---|---|
 | `index.html` | Provides the document and the `#root` mount point. |
-| `src/main.tsx` | Imports global CSS, creates the React root, and mounts `App` inside `StrictMode`. |
-| `src/App.tsx` | Defines the current top-level welcome screen and its semantic page structure. |
+| `src/main.tsx` | Creates the store, wraps the app in `Provider`, imports global CSS, and mounts `App` inside `StrictMode`. |
+| `src/App.tsx` | Loads and validates the catalog, renders shelves, and synchronizes visible focus and selection. |
 | `src/index.css` | Sets global typography, page defaults, colors, and box sizing. |
-| `src/App.css` | Styles the app shell, header, welcome panel, and status badges. |
+| `src/App.css` | Styles the app shell, shelves, title cards, and focused state. |
 | `scripts/generate-catalog.ts` | Generates 40 rows with 250 synthetic titles per row and writes the JSON fixture. |
-| `src/data/catalog.json` | Stores the generated fixture for later application use. |
+| `public/catalog.json` | Stores the generated fixture as a static asset fetched by the browser. |
 | `public/posters/poster-placeholder.svg` | Supplies a local image asset without an external request. |
-| `src/store/focusSlice.ts` | Defines and exports the focus-state reducer and navigation actions; not yet connected to the UI. |
+| `src/store/focusSlice.ts` | Defines focus-state transitions and navigation actions. |
+| `src/store/index.ts` | Configures the Redux store used by the React Provider. |
+| `src/hooks/useRemoteKeys.ts` | Maps arrow, Enter, and Back/Escape key events to navigation behavior. |
 | `tests/focusSlice.test.ts` | Tests focus movement rules using Node's built-in test runner. |
 | `vite.config.ts` | Configures the Vite + React development and build toolchain. |
 
@@ -64,10 +70,13 @@ The build-time, browser, and focus-model flows are intentionally distinct:
 
 1. The browser loads `index.html`, which contains the root DOM element.
 2. Vite resolves the module entry at `src/main.tsx`.
-3. `main.tsx` imports global styles and calls `createRoot` to attach React to
-   the root element.
-4. React renders `App`, which currently returns a header and a welcome panel.
-5. The CSS files apply global defaults and component-level presentation.
+3. `main.tsx` creates the Redux store, wraps the app in `Provider`, and calls
+   `createRoot` to attach React to the root element.
+4. `App` fetches `/catalog.json`, validates the response, and initializes row
+   lengths in the focus reducer.
+5. React renders the shelves and title cards; the key hook dispatches
+   navigation actions and the selected card is brought into view.
+6. The CSS files apply global defaults and component-level presentation.
 
 `StrictMode` is a development aid that helps reveal certain unsafe patterns. It
 does not add an application state layer or a production UI feature.
@@ -92,10 +101,9 @@ Keeping generation separate from browser rendering has useful properties:
   must consume it and be measured before we can draw conclusions about
   rendering.
 
-At this milestone, the generator writes a complete JSON file and the browser
-does not import it. A later data-loading change should define and validate the
-catalog shape at the point where it enters the UI, then pass the data to
-components rather than having unrelated components read a global file.
+The generator writes a complete JSON file into `public/`, and the browser
+fetches it as a separate asset. The response shape is checked at the boundary
+before the data is passed to the rendering logic.
 
 ## Build and quality boundary
 
@@ -105,8 +113,8 @@ components rather than having unrelated components read a global file.
 - **Oxlint** checks the source with the repository's configured rules.
 - **Node's built-in test runner**, launched through `tsx`, tests the focus
   reducer without adding a separate test framework.
-- **The generator** is a separate Node-side script and is not part of the
-  browser bundle.
+- **The generator** is a separate Node-side script. The generated catalog is
+  served as static JSON, not embedded in the application JavaScript.
 
 The current validation commands are `npm test`, `npm run lint`, and
 `npm run build`. Building successfully confirms the current TypeScript and
@@ -133,11 +141,8 @@ is to preserve clear boundaries as those features arrive:
    output separate from product UI logic so results can be repeated and
    compared.
 
-The broader roadmap proposes Redux Toolkit for focus and experiment state, but
-Redux Toolkit is not currently a dependency and there is no store in the
-runtime. We should make that decision when the focus model is implemented,
-based on the state-sharing and testability needs at that point—not describe it
-as an existing architectural fact.
+The current UI uses Redux Toolkit for shared focus state. Additional
+application state should be added only when a later milestone needs it.
 
 ## Why these boundaries help
 

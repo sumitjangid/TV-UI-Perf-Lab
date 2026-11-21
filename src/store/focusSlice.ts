@@ -79,6 +79,30 @@ const focusSlice = createSlice({
       );
       state.lastColByRow[activeRow] = state.col;
     },
+    setFocusPosition(
+      state,
+      action: PayloadAction<{ row: number; col: number }>,
+    ) {
+      const { row, col } = action.payload;
+      const rowLength = state.rowLengths[row];
+      if (
+        !Number.isInteger(row) ||
+        !Number.isInteger(col) ||
+        row < 0 ||
+        rowLength === undefined ||
+        rowLength === 0
+      ) {
+        return;
+      }
+
+      if (state.rowLengths[state.row] > 0) {
+        state.lastColByRow[state.row] = state.col;
+      }
+
+      state.row = row;
+      state.col = clampIndex(col, rowLength);
+      state.lastColByRow[row] = state.col;
+    },
     moveRight(state) {
       const rowLength = state.rowLengths[state.row] ?? 0;
       if (rowLength === 0) {
@@ -128,6 +152,12 @@ function moveToAdjacentRow(state: FocusState, direction: -1 | 1): void {
   state.lastColByRow[nextRow] = state.col;
 }
 
-export const { setRowLengths, moveRight, moveLeft, moveDown, moveUp } =
-  focusSlice.actions;
+export const {
+  setFocusPosition,
+  setRowLengths,
+  moveRight,
+  moveLeft,
+  moveDown,
+  moveUp,
+} = focusSlice.actions;
 export default focusSlice.reducer;

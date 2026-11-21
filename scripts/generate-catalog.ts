@@ -6,7 +6,7 @@ const ROWS = 40;
 const TITLES_PER_ROW = 250;
 const outputPath = resolve(
   dirname(fileURLToPath(import.meta.url)),
-  "../src/data/catalog.json",
+  "../public/catalog.json",
 );
 
 const catalog = Array.from({ length: ROWS }, (_, rowIndex) => ({

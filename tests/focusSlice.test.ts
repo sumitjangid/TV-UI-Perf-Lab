@@ -5,6 +5,7 @@ import focusReducer, {
   moveLeft,
   moveRight,
   moveUp,
+  setFocusPosition,
   setRowLengths,
   type FocusState,
 } from "../src/store/focusSlice";
@@ -109,5 +110,19 @@ describe("focus reducer", () => {
 
     state = focusReducer(state, moveUp());
     equal(state.col, 1);
+  });
+
+  it("updates focus for a clicked item and preserves the previous row column", () => {
+    let state = createFocus([4, 3]);
+    state = focusReducer(state, moveRight());
+    state = focusReducer(state, moveRight());
+
+    state = focusReducer(state, setFocusPosition({ row: 1, col: 8 }));
+    equal(state.row, 1);
+    equal(state.col, 2);
+
+    state = focusReducer(state, moveUp());
+    equal(state.row, 0);
+    equal(state.col, 2);
   });
 });

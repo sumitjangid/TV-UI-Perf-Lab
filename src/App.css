@@ -23,6 +23,18 @@
   letter-spacing: -0.04em;
 }
 
+.browse-instructions {
+  margin: 1rem 0 0;
+  color: #c3d0db;
+}
+
+.selection-status {
+  min-height: 1.5rem;
+  max-width: 72rem;
+  margin: 2rem auto 0;
+  color: #9fb3c5;
+}
+
 .eyebrow {
   margin: 0 0 0.75rem;
   color: #9fb3c5;
@@ -32,43 +44,61 @@
   text-transform: uppercase;
 }
 
-.welcome-panel {
-  box-sizing: border-box;
+.catalog {
   max-width: 72rem;
-  margin: clamp(3rem, 10vh, 7rem) auto 0;
-  padding: clamp(1.5rem, 4vw, 3rem);
-  border: 1px solid rgb(194 214 230 / 18%);
-  border-radius: 1.25rem;
-  background: linear-gradient(135deg, rgb(31 48 62 / 92%), rgb(20 32 43 / 92%));
-  box-shadow: 0 1.5rem 5rem rgb(0 0 0 / 22%);
+  margin: 2rem auto 0;
 }
 
-.welcome-panel h2 {
-  margin: 0;
-  font-size: clamp(2rem, 5vw, 4rem);
-  letter-spacing: -0.05em;
-}
-
-.welcome-panel > p:not(.eyebrow) {
-  max-width: 42rem;
-  margin: 1rem 0 0;
-  color: #c3d0db;
-  font-size: clamp(1rem, 2vw, 1.2rem);
-  line-height: 1.6;
-}
-
-.status-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
+.shelf + .shelf {
   margin-top: 2rem;
 }
 
-.status-list span {
-  padding: 0.55rem 0.85rem;
+.shelf h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+}
+
+.shelf-track {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding: 0.5rem 0.25rem 1rem;
+}
+
+.title-card {
+  display: flex;
+  flex: 0 0 9rem;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.5rem;
   border: 1px solid rgb(194 214 230 / 20%);
-  border-radius: 999px;
+  border-radius: 0.75rem;
   color: #d7e3ec;
   background: rgb(7 15 22 / 35%);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.title-card.is-focused {
+  outline: 4px solid #79d6ff;
+  outline-offset: 2px;
+  transform: scale(1.04);
+  z-index: 1;
+}
+
+.title-poster {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 2 / 3;
+  border-radius: 0.4rem;
+  background: #243746;
+  object-fit: cover;
+}
+
+.title-card span {
+  min-height: 2.5rem;
   font-size: 0.9rem;
+  line-height: 1.3;
 }
