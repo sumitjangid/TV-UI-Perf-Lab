@@ -274,7 +274,11 @@ export function windowRange(focused: number, total: number, before: number, afte
 
 Use it twice:
 - **Rows:** render rows `focusedRow - 2` to `focusedRow + 3`; the rest are not mounted.
-- **Tiles:** inside each rendered row, render roughly `focusedCol - 3` to `focusedCol + 10`.
+- **Tiles:** inside each rendered row, render roughly `focusedCol - 7` to `focusedCol + 6`.
+- Use fixed-size spacers for omitted rows and tiles so the visible content keeps its original position.
+
+The tile buffer keeps enough cards visible around focus, including at the
+initial column, while preserving the 14-card limit.
 
 Image rules:
 - Mount `<img>` only for tiles in the window; unmount when they leave.
@@ -283,7 +287,11 @@ Image rules:
 
 Add a **`?mode=naive`** query flag that renders everything with no windowing. This is your baseline for the before-and-after comparison.
 
-**Done when:** scrolling through 10,000 titles keeps the number of mounted DOM nodes roughly constant (check with `document.querySelectorAll('*').length`).
+**Done when:** the windowed mode mounts at most 6 shelves and 84 title cards
+around a middle focus position; `?mode=naive` mounts all 40 shelves and
+10,000 cards. Verify with
+`document.querySelectorAll('.shelf').length` and
+`document.querySelectorAll('.title-card').length`.
 
 ### Phase 4: Benchmark harness (about 1 day)
 
@@ -445,10 +453,10 @@ Unit tests to write:
 import { windowRange } from "../../src/lib/virtualRange";
 
 test("window is clamped at the start", () => {
-  expect(windowRange(0, 100, 3, 10)).toEqual({ start: 0, end: 11 });
+  expect(windowRange(0, 100, 7, 6)).toEqual({ start: 0, end: 7 });
 });
 test("window is clamped at the end", () => {
-  expect(windowRange(99, 100, 3, 10)).toEqual({ start: 96, end: 100 });
+  expect(windowRange(99, 100, 7, 6)).toEqual({ start: 92, end: 100 });
 });
 ```
 

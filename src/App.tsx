@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import "./App.css";
 import { useRemoteKeys } from "./hooks/useRemoteKeys";
+import { rowFocusColumn, windowRange } from "./lib/virtualRange";
 import type { AppDispatch, RootState } from "./store";
 import {
   setFocusPosition,
@@ -19,6 +20,19 @@ interface CatalogRow {
   title: string;
   items: CatalogItem[];
 }
+
+const ROWS_BEFORE = 2;
+const ROWS_AFTER = 3;
+const ITEMS_BEFORE = 7;
+const ITEMS_AFTER = 6;
+const TILE_WIDTH_REM = 9;
+const TILE_GAP_REM = 1;
+const SHELF_HEIGHT_REM = 20;
+const SHELF_GAP_REM = 2;
+const TILE_STEP_REM = TILE_WIDTH_REM + TILE_GAP_REM;
+const SHELF_STEP_REM = SHELF_HEIGHT_REM + SHELF_GAP_REM;
+const isNaiveMode =
+  new URLSearchParams(window.location.search).get("mode") === "naive";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -124,6 +138,10 @@ function App() {
         ? "Loading catalog..."
         : "Browse the synthetic catalog.";
 
+  const rowRange = isNaiveMode
+    ? { start: 0, end: catalog.length }
+    : windowRange(focus.row, catalog.length, ROWS_BEFORE, ROWS_AFTER);
+
   return (
     <main className="app-shell">
       <header className="app-header">
@@ -133,6 +151,11 @@ function App() {
           Use the arrow keys to browse, Enter to select, and Escape to clear
           the selection.
         </p>
+        <p className="render-mode">
+          {isNaiveMode
+            ? "Naive baseline: all title cards are mounted."
+            : "Windowed rendering: visible titles plus a small buffer."}
+        </p>
       </header>
 
       <p className="selection-status" role="status" aria-live="polite">
@@ -141,47 +164,104 @@ function App() {
 
       {!isLoading && !loadError && (
         <section className="catalog" aria-label="Title collections">
-          {catalog.map((row, rowIndex) => (
-            <section
-              className="shelf"
-              aria-labelledby={`shelf-${row.id}`}
-              key={row.id}
-            >
-              <h2 id={`shelf-${row.id}`}>{row.title}</h2>
-              <div
-                className="shelf-track"
-                aria-label={`${row.title} titles`}
-                role="group"
-              >
-                {row.items.map((item, colIndex) => {
-                  const isFocused =
-                    focus.row === rowIndex && focus.col === colIndex;
+          {rowRange.start > 0 && (
+            <div
+              aria-hidden="true"
+              className="shelf-spacer"
+              style={{
+                height: `${rowRange.start * SHELF_STEP_REM - SHELF_GAP_REM}rem`,
+              }}
+            />
+          )}
+          {catalog.slice(rowRange.start, rowRange.end).map((row, rowOffset) => {
+            const rowIndex = rowRange.start + rowOffset;
+            const rowFocus = rowFocusColumn(
+              rowIndex,
+              focus.row,
+              focus.col,
+              focus.lastColByRow,
+            );
+            const itemRange = isNaiveMode
+              ? { start: 0, end: row.items.length }
+              : windowRange(
+                  rowFocus,
+                  row.items.length,
+                  ITEMS_BEFORE,
+                  ITEMS_AFTER,
+                );
 
-                  return (
-                    <button
-                      className={`title-card${isFocused ? " is-focused" : ""}`}
-                      id={`title-${rowIndex}-${colIndex}`}
-                      key={item.id}
-                      onClick={() => selectItem(rowIndex, colIndex, item)}
-                      tabIndex={isFocused ? 0 : -1}
-                      type="button"
-                    >
-                      <img
-                        alt=""
-                        className="title-poster"
-                        decoding="async"
-                        height="450"
-                        loading="lazy"
-                        src={item.poster}
-                        width="300"
-                      />
-                      <span>{item.title}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-          ))}
+            return (
+              <section
+                className="shelf"
+                aria-labelledby={`shelf-${row.id}`}
+                key={row.id}
+              >
+                <h2 id={`shelf-${row.id}`}>{row.title}</h2>
+                <div
+                  className="shelf-track"
+                  aria-label={`${row.title} titles`}
+                  role="group"
+                >
+                  {itemRange.start > 0 && (
+                    <div
+                      aria-hidden="true"
+                      className="tile-spacer"
+                      style={{
+                        width: `${itemRange.start * TILE_STEP_REM - TILE_GAP_REM}rem`,
+                      }}
+                    />
+                  )}
+                  {row.items
+                    .slice(itemRange.start, itemRange.end)
+                    .map((item, itemOffset) => {
+                      const colIndex = itemRange.start + itemOffset;
+                      const isFocused =
+                        focus.row === rowIndex && focus.col === colIndex;
+
+                      return (
+                        <button
+                          className={`title-card${isFocused ? " is-focused" : ""}`}
+                          id={`title-${rowIndex}-${colIndex}`}
+                          key={item.id}
+                          onClick={() => selectItem(rowIndex, colIndex, item)}
+                          tabIndex={isFocused ? 0 : -1}
+                          type="button"
+                        >
+                          <img
+                            alt=""
+                            className="title-poster"
+                            decoding="async"
+                            height="450"
+                            loading="lazy"
+                            src={item.poster}
+                            width="300"
+                          />
+                          <span>{item.title}</span>
+                        </button>
+                      );
+                    })}
+                  {itemRange.end < row.items.length && (
+                    <div
+                      aria-hidden="true"
+                      className="tile-spacer"
+                      style={{
+                        width: `${(row.items.length - itemRange.end) * TILE_STEP_REM - TILE_GAP_REM}rem`,
+                      }}
+                    />
+                  )}
+                </div>
+              </section>
+            );
+          })}
+          {rowRange.end < catalog.length && (
+            <div
+              aria-hidden="true"
+              className="shelf-spacer"
+              style={{
+                height: `${(catalog.length - rowRange.end) * SHELF_STEP_REM - SHELF_GAP_REM}rem`,
+              }}
+            />
+          )}
         </section>
       )}
     </main>

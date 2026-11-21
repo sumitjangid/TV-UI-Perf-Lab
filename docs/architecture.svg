@@ -1,12 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 720" role="img" aria-labelledby="title description">
   <title id="title">TV UI Performance Lab current architecture</title>
-  <desc id="description">A build-time catalog generator writes a static JSON file that the browser fetches. The React app is wrapped in a Redux Provider; a keyboard hook dispatches actions to the focus reducer, which is covered by tests.</desc>
+  <desc id="description">A build-time catalog generator writes a static JSON file that the browser fetches. The React app is wrapped in a Redux Provider, renders windowed shelves and cards, and uses a keyboard hook to dispatch focus actions. Tests cover focus and range behavior.</desc>
   <defs>
     <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
       <path d="M0,0 L10,5 L0,10 z" fill="#526477" />
-    </marker>
-    <marker id="planned-arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L10,5 L0,10 z" fill="#9a6b16" />
     </marker>
     <style>
       text { font-family: Inter, ui-sans-serif, system-ui, sans-serif; fill: #172635; }
@@ -19,8 +16,6 @@
       .data-node { fill: #e8f5f2; stroke: #4b9b88; stroke-width: 1.5; }
       .runtime-node { fill: #edf3fa; stroke: #6a8fb5; stroke-width: 1.5; }
       .edge { fill: none; stroke: #526477; stroke-width: 2; marker-end: url(#arrow); }
-      .planned-edge { fill: none; stroke: #9a6b16; stroke-width: 2; stroke-dasharray: 7 6; marker-end: url(#planned-arrow); }
-      .planned-label { font-size: 11px; font-weight: 600; fill: #80580e; }
     </style>
   </defs>
 
@@ -58,7 +53,7 @@
 
   <rect class="runtime-node" x="670" y="325" width="230" height="74" rx="10" />
   <text class="node-title" x="690" y="354">src/App.tsx</text>
-  <text class="node-detail" x="690" y="377">Catalog shelves + title cards</text>
+  <text class="node-detail" x="690" y="377">Windowed shelves + title cards</text>
 
   <path class="edge" d="M250 362 H310" />
   <path class="edge" d="M550 362 H660" />
@@ -77,15 +72,15 @@
   <text class="node-detail" x="812" y="280">fetches JSON</text>
 
   <rect class="panel" x="30" y="550" width="940" height="145" rx="14" />
-  <text class="group-title" x="55" y="580">Keyboard navigation · Redux focus flow</text>
+  <text class="group-title" x="55" y="580">Navigation and windowing · focus/range logic</text>
 
   <rect class="node" x="65" y="605" width="235" height="62" rx="10" />
-  <text class="node-title" x="82" y="632">tests/focusSlice.test.ts</text>
-  <text class="node-detail" x="82" y="652">Node test runner</text>
+  <text class="node-title" x="82" y="632">tests/*.test.ts</text>
+  <text class="node-detail" x="82" y="652">Focus and range boundaries</text>
 
   <rect x="380" y="605" width="245" height="62" rx="10" fill="#fff8e6" stroke="#d4aa4e" stroke-width="1.5" />
-  <text class="node-title" x="397" y="632">src/store/focusSlice.ts</text>
-  <text class="node-detail" x="397" y="652">Redux focus transitions</text>
+  <text class="node-title" x="397" y="632">focusSlice + virtualRange</text>
+  <text class="node-detail" x="397" y="652">State and bounded ranges</text>
 
   <rect class="node" x="705" y="605" width="230" height="62" rx="10" />
   <text class="node-title" x="720" y="632">useRemoteKeys.ts</text>

@@ -41,6 +41,12 @@ npm run lint
 npm run build
 ```
 
+### Issues and refactors
+
+No build or lint errors were found. The generator writes its file path relative
+to the script, and the fixture uses a local placeholder image so generation
+does not depend on a network service.
+
 ## Milestone 2: Focus-state model
 
 ### What we built
@@ -100,6 +106,12 @@ npm run lint
 npm run build
 ```
 
+### Issues and refactors
+
+The reducer passed its focused tests and build checks without a corrective
+refactor. We kept it independent of the UI so the next milestone could connect
+it to keyboard events and rendering without changing the navigation rules.
+
 ## Milestone 3: Browsing and remote controls
 
 ### What we built
@@ -131,6 +143,16 @@ npm run build
   baseline. The next performance milestone can measure and reduce the DOM
   rather than mixing optimization into the first working interaction.
 
+### Issue found and refactor
+
+The first production build bundled the imported catalog into the JavaScript
+chunk and warned that the chunk exceeded 500 KB. The entry chunk was
+1,074.44 KB (139.06 KB gzip). We moved the generated catalog to
+`public/catalog.json` and fetch it as JSON instead. The app JavaScript is now
+246.76 KB (78.54 KB gzip), and the catalog is a separate 828,513-byte asset.
+This reduces the JavaScript chunk and separates parsing/loading responsibilities;
+it does not by itself reduce the catalog's uncompressed size.
+
 ### Validate
 
 Automated checks:
@@ -154,3 +176,54 @@ Manual browser check:
    title should update focus and selection.
 6. Confirm the browser requests `/catalog.json` separately from the app's
    JavaScript bundle.
+
+## Milestone 4: Windowing and memory
+
+### What we built
+
+- `windowRange` returns an end-exclusive range around the focused index.
+- Normal mode renders up to 6 shelves (2 before and 3 after focus) and up to
+   14 cards per shelf (7 before and 6 after the row's remembered column).
+- Spacer elements preserve each row and card's position while off-window
+   elements are unmounted.
+- `?mode=naive` renders every shelf and card as a comparison baseline.
+- Range tests check boundaries, empty and short lists, and the fixed maximum
+   window sizes, including how an unvisited row chooses its initial column.
+
+### Why we did it this way
+
+The catalog still loads as data, but the browser no longer needs 10,000 title
+cards in the DOM at once. A small buffer around focus keeps nearby navigation
+ready while bounding mounted elements. Spacers retain the full layout size, so
+removing offscreen elements does not collapse the scroll position. The naive
+mode lets us compare the optimized DOM with the original full-render approach.
+
+### Issues and refactors
+
+During manual validation, the tiles in lower, unvisited rows appeared to
+disappear after horizontal movement. Their render window was following the
+active row's column, but their horizontal scroll position had not moved, so
+their real cards sat beyond the visible area. We changed unvisited rows to
+anchor at column zero, while visited rows use their remembered column and the
+active row uses the current focus. A regression test covers this rule.
+
+The other important refinement was adding layout spacers: simply slicing the
+arrays would have shifted the remaining cards and shelves as the window moved.
+Manual validation also showed that three cards before focus were not enough to
+fill the visible left side of a shelf while moving right. We shifted the same
+14-card budget to 10 before and 3 after focus, and made card sizing
+border-box so the spacer step matches the rendered card width plus gap. That
+left only four cards mounted at the initial column, so we rebalanced the
+window to 7 before and 6 after focus. This still renders at most 14 cards and
+provides seven cards on the initial view.
+
+### Validate
+
+Run `npm test`, `npm run lint`, and `npm run build`. In the browser, compare
+the default mode with `?mode=naive`. At a middle row and column, the windowed
+view should mount at most 6 shelves and 84 title cards; the naive view should
+mount all 40 shelves and 10,000 cards. Navigate to the edges to confirm the
+focused card remains mounted and visible, and that lower rows continue to show
+their own tiles while the active row scrolls. While moving right, confirm the
+cards preceding focus fill the visible left side instead of exposing a blank
+spacer.

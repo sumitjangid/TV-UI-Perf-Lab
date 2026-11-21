@@ -45,12 +45,16 @@
 }
 
 .catalog {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
   max-width: 72rem;
   margin: 2rem auto 0;
 }
 
-.shelf + .shelf {
-  margin-top: 2rem;
+.shelf {
+  flex: 0 0 20rem;
+  height: 20rem;
 }
 
 .shelf h2 {
@@ -62,10 +66,21 @@
   display: flex;
   gap: 1rem;
   overflow-x: auto;
-  padding: 0.5rem 0.25rem 1rem;
+  padding: 0.75rem;
+}
+
+.shelf-spacer,
+.tile-spacer {
+  flex: 0 0 auto;
+  pointer-events: none;
+}
+
+.tile-spacer {
+  height: 1px;
 }
 
 .title-card {
+  box-sizing: border-box;
   display: flex;
   flex: 0 0 9rem;
   flex-direction: column;

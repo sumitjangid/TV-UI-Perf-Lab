@@ -24,6 +24,7 @@ flowchart TB
     html["index.html<br/>#root mount point"] --> entry["src/main.tsx<br/>Provider + createRoot"]
     entry --> store["src/store/index.ts<br/>Redux store"]
     store --> app["src/App.tsx<br/>catalog shelves and title cards"]
+    app --> ranges["src/lib/virtualRange.ts<br/>row and item windows"]
     app --> keys["src/hooks/useRemoteKeys.ts<br/>key-to-action mapping"]
     keys --> store
     entry --> globalStyles["src/index.css<br/>global styles"]
@@ -31,7 +32,8 @@ flowchart TB
   end
 
   subgraph focusModel["Focus-state transitions"]
-    tests["tests/focusSlice.test.ts<br/>Node test runner"] --> reducer["src/store/focusSlice.ts<br/>Redux Toolkit reducer"]
+    tests["tests/*.test.ts<br/>Node test runner"] --> reducer["src/store/focusSlice.ts<br/>Redux Toolkit reducer"]
+    tests --> ranges
     store --> reducer
   end
 
@@ -44,9 +46,12 @@ JavaScript.
 
 - The **generator** creates a predictable data fixture in `public/`.
 - The **React app** loads and validates the catalog, then renders shelves and
-  title cards.
+  title cards around the focused row and column. The `?mode=naive` query
+  parameter disables windowing for comparison.
 - The **key hook** translates keyboard events to Redux actions. The reducer
   owns navigation transitions, while the app renders the focused position.
+- The **range helper** computes end-exclusive row and item windows. Tests cover
+  both focus transitions and window boundaries.
 
 ## Responsibilities of the current files
 
@@ -54,7 +59,7 @@ JavaScript.
 |---|---|
 | `index.html` | Provides the document and the `#root` mount point. |
 | `src/main.tsx` | Creates the store, wraps the app in `Provider`, imports global CSS, and mounts `App` inside `StrictMode`. |
-| `src/App.tsx` | Loads and validates the catalog, renders shelves, and synchronizes visible focus and selection. |
+| `src/App.tsx` | Loads and validates the catalog, renders windowed shelves and cards, and synchronizes visible focus and selection. |
 | `src/index.css` | Sets global typography, page defaults, colors, and box sizing. |
 | `src/App.css` | Styles the app shell, shelves, title cards, and focused state. |
 | `scripts/generate-catalog.ts` | Generates 40 rows with 250 synthetic titles per row and writes the JSON fixture. |
@@ -63,7 +68,9 @@ JavaScript.
 | `src/store/focusSlice.ts` | Defines focus-state transitions and navigation actions. |
 | `src/store/index.ts` | Configures the Redux store used by the React Provider. |
 | `src/hooks/useRemoteKeys.ts` | Maps arrow, Enter, and Back/Escape key events to navigation behavior. |
+| `src/lib/virtualRange.ts` | Calculates end-exclusive row and item windows around focus. |
 | `tests/focusSlice.test.ts` | Tests focus movement rules using Node's built-in test runner. |
+| `tests/virtualRange.test.ts` | Tests range boundaries, empty lists, and window sizes. |
 | `vite.config.ts` | Configures the Vite + React development and build toolchain. |
 
 ### Browser startup, step by step
@@ -74,9 +81,11 @@ JavaScript.
    `createRoot` to attach React to the root element.
 4. `App` fetches `/catalog.json`, validates the response, and initializes row
    lengths in the focus reducer.
-5. React renders the shelves and title cards; the key hook dispatches
-   navigation actions and the selected card is brought into view.
-6. The CSS files apply global defaults and component-level presentation.
+5. `App` renders only the current row/card windows, using spacers to preserve
+   layout; `?mode=naive` renders the full catalog for comparison.
+6. The key hook dispatches navigation actions and the selected card is brought
+   into view.
+7. The CSS files apply global defaults and component-level presentation.
 
 `StrictMode` is a development aid that helps reveal certain unsafe patterns. It
 does not add an application state layer or a production UI feature.
@@ -134,9 +143,9 @@ is to preserve clear boundaries as those features arrive:
 3. **Interaction boundary:** keep remote-key interpretation out of visual
    components. Translate key events into named navigation actions, then
    update one explicit focus model.
-4. **Rendering boundary:** make a straightforward implementation first.
-   Introduce windowing or image-loading optimizations only when the benchmark
-   shows a measurable bottleneck.
+4. **Rendering boundary:** the initial windowed implementation is in place.
+   Compare it with naive mode, then use benchmark results to tune range sizes
+   and image-loading behavior.
 5. **Measurement boundary:** keep performance instrumentation and benchmark
    output separate from product UI logic so results can be repeated and
    compared.

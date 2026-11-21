@@ -21,6 +21,8 @@ mouse:
   content, and enough contrast between text and surfaces.
 - **Focus is a first-class state:** remote users need to know which item will
   respond to Enter before they activate it.
+- **Offscreen content stays spatially stable:** spacers preserve the layout
+  footprint when windowing removes offscreen shelves and cards from the DOM.
 - **Simple spatial navigation:** visual layout should make left/right and
   up/down movement predictable.
 - **Consistent components:** repeated cards, rows, labels, and controls should
@@ -95,7 +97,8 @@ has a real shared meaning or expected reuse.
 ### Title cards
 
 - Cards currently use a fixed `9rem` width and posters use a `2 / 3` aspect
-  ratio so shelves stay aligned.
+  ratio so shelves stay aligned. Border-box sizing keeps the card's rendered
+  width consistent with the windowing spacer calculations.
 - Use a local/fallback image path and meaningful alternative text when the
   poster conveys title information. The current placeholder poster is
   decorative, so its `alt` text is empty and the visible title labels the
@@ -149,6 +152,5 @@ them and simplify the costly treatment rather than removing all visual
 hierarchy.
 
 For each new component, define its purpose, dimensions, typography, and states
-before adding decorative details. The current app deliberately renders the
-whole catalog as a baseline; windowing belongs to a later performance
-milestone.
+before adding decorative details. The normal view windows the catalog;
+`?mode=naive` remains available to compare against full rendering.
