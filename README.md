@@ -6,8 +6,24 @@ local placeholder posters, so the app has no external data or image dependency.
 
 ## Live demo
 
-Deploy the production build to Vercel, then replace this line with the public
-URL. The repository is Vercel-ready through `vercel.json`.
+[https://tv-ui-perf-lab.vercel.app/](https://tv-ui-perf-lab.vercel.app/)
+
+The repository is Vercel-ready through `vercel.json`, and CI validates pushes
+and pull requests through [GitHub Actions](https://github.com/sumitjangid/TV-UI-Perf-Lab/actions/workflows/ci.yml).
+
+## Demo
+
+<video src="public/demo.webm" controls muted width="720">
+  <a href="public/demo.webm">Watch the short TV UI demo</a>
+</video>
+
+![TV UI Performance Lab desktop demo](public/demo-desktop.png)
+
+The catalog supports keyboard-first browsing and a title filter that runs in a
+dedicated Web Worker. The filter keeps catalog processing off the main thread
+and is useful for explaining browser responsiveness and worker boundaries:
+
+![Filtered catalog demo](public/demo-filtered.png)
 
 ## Getting started
 
@@ -113,6 +129,43 @@ repetitions per scenario:
 These values are environment-specific observations, not portable guarantees.
 The benchmark measures browser-side key-to-two-frame latency, not physical
 remote-to-screen latency.
+
+## Windowed vs. naive comparison
+
+| Scenario | Mounted DOM nodes | 4× key p95 | 4× long tasks | 4× JS heap |
+|---|---:|---:|---:|---:|
+| Windowed | 214 | 81.1 ms | 2 | 5.0 MB |
+| Naive | 30,138 | 417.4 ms | 34 | 41.9 MB |
+
+The windowed implementation reduces mounted DOM nodes by about 99.3% and
+4×-CPU key latency p95 by about 80.6% in the recorded Codespace run. These
+numbers are repeatable local evidence, not universal TV-device guarantees.
+
+## Live Lighthouse and Core Web Vitals
+
+Measured against the deployed Vercel URL on November 23, 2026:
+
+| Lighthouse category | Score |
+|---|---:|
+| Performance | 91 |
+| Accessibility | 100 |
+| Best Practices | 100 |
+| SEO | 92 |
+
+| Core Web Vital / metric | Result |
+|---|---:|
+| First Contentful Paint | 0.8 s |
+| Largest Contentful Paint | 1.5 s |
+| Cumulative Layout Shift | 0.028 |
+| Total Blocking Time | 370 ms |
+| Speed Index | 1.4 s |
+
+The raw Lighthouse report is retained at
+[lighthouse/live.json](lighthouse/live.json). Regenerate it with:
+
+```bash
+npm run lighthouse:deployed
+```
 
 ## A/B framework
 

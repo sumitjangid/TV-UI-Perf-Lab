@@ -65,6 +65,9 @@ function App() {
   const dispatch = useDispatch<AppDispatch>();
   const focus = useSelector((state: RootState) => state.focus);
   const [catalog, setCatalog] = useState<CatalogRow[]>([]);
+  const [displayCatalog, setDisplayCatalog] = useState<CatalogRow[]>([]);
+  const [catalogQuery, setCatalogQuery] = useState("");
+  const [isFiltering, setIsFiltering] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<CatalogItem | null>(null);
@@ -123,6 +126,7 @@ function App() {
         }
 
         setCatalog(data);
+        setDisplayCatalog(data);
         dispatch(setRowLengths(data.map((row) => row.items.length)));
       } catch (error) {
         if (!controller.signal.aborted) {
@@ -141,8 +145,35 @@ function App() {
     return () => controller.abort();
   }, [dispatch]);
 
+  useEffect(() => {
+    if (catalog.length === 0) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      const worker = new Worker(
+        new URL("./lib/catalogFilter.worker.ts", import.meta.url),
+        { type: "module" },
+      );
+
+      worker.addEventListener("message", (event: MessageEvent<CatalogRow[]>) => {
+        setDisplayCatalog(event.data);
+        dispatch(
+          setRowLengths(event.data.map((row) => row.items.length)),
+        );
+        dispatch(setFocusPosition({ row: 0, col: 0 }));
+        setIsFiltering(false);
+        worker.terminate();
+      });
+
+      worker.postMessage({ catalog, query: catalogQuery });
+    }, 100);
+
+    return () => window.clearTimeout(timeout);
+  }, [catalog, catalogQuery, dispatch]);
+
   const selectFocusedItem = useCallback(() => {
-    const item = catalog[focus.row]?.items[focus.col];
+    const item = displayCatalog[focus.row]?.items[focus.col];
     if (item) {
       logExperimentEvent({
         userId,
@@ -158,7 +189,7 @@ function App() {
       });
       setSelectedItem(item);
     }
-  }, [catalog, focus.col, focus.row, previewVariant, tileVariant, userId]);
+  }, [displayCatalog, focus.col, focus.row, previewVariant, tileVariant, userId]);
 
   const clearSelection = useCallback(() => {
     setSelectedItem(null);
@@ -167,13 +198,13 @@ function App() {
   useRemoteKeys(selectFocusedItem, clearSelection);
 
   useEffect(() => {
-    if (catalog.length > 0) {
+    if (displayCatalog.length > 0) {
       document.getElementById(`title-${focus.row}-${focus.col}`)?.focus();
     }
-  }, [catalog.length, focus.col, focus.row]);
+  }, [displayCatalog.length, focus.col, focus.row]);
 
   useEffect(() => {
-    const item = catalog[focus.row]?.items[focus.col];
+    const item = displayCatalog[focus.row]?.items[focus.col];
     if (!item) {
       return;
     }
@@ -181,7 +212,7 @@ function App() {
       setPreview({ row: focus.row, col: focus.col, title: item.title });
     }, previewDelayMs);
     return () => window.clearTimeout(timeout);
-  }, [catalog, focus.col, focus.row, previewDelayMs]);
+  }, [displayCatalog, focus.col, focus.row, previewDelayMs]);
 
   const previewTitle =
     preview?.row === focus.row && preview.col === focus.col
@@ -211,13 +242,17 @@ function App() {
       ? `Selected ${selectedItem.title}. Press Escape to return to browsing.`
       : isLoading
         ? "Loading catalog..."
-        : "Browse the synthetic catalog.";
+        : isFiltering
+          ? "Filtering catalog..."
+          : catalogQuery.trim()
+            ? `${displayCatalog.length} matching collections.`
+            : "Browse the synthetic catalog.";
 
   const rowRange = isNaiveMode
-    ? { start: 0, end: catalog.length }
-    : windowRange(focus.row, catalog.length, ROWS_BEFORE, ROWS_AFTER);
+    ? { start: 0, end: displayCatalog.length }
+    : windowRange(focus.row, displayCatalog.length, ROWS_BEFORE, ROWS_AFTER);
   const focusedTitle =
-    catalog[focus.row]?.items[focus.col]?.title ?? null;
+    displayCatalog[focus.row]?.items[focus.col]?.title ?? null;
 
   return (
     <main
@@ -234,6 +269,19 @@ function App() {
           Use the arrow keys to browse, Enter to select, and Escape to clear
           the selection.
         </p>
+        <label className="catalog-search">
+          <span>Filter titles</span>
+          <input
+            aria-label="Filter catalog titles"
+            onChange={(event) => {
+              setCatalogQuery(event.target.value);
+              setIsFiltering(true);
+            }}
+            placeholder="Try: Title 004"
+            type="search"
+            value={catalogQuery}
+          />
+        </label>
         <p className="render-mode">
           {isNaiveMode
             ? "Naive baseline: all title cards are mounted."
@@ -264,7 +312,7 @@ function App() {
               }}
             />
           )}
-          {catalog.slice(rowRange.start, rowRange.end).map((row, rowOffset) => {
+          {displayCatalog.slice(rowRange.start, rowRange.end).map((row, rowOffset) => {
             const rowIndex = rowRange.start + rowOffset;
             const rowFocus = rowFocusColumn(
               rowIndex,
@@ -346,12 +394,12 @@ function App() {
               </section>
             );
           })}
-          {rowRange.end < catalog.length && (
+          {rowRange.end < displayCatalog.length && (
             <div
               aria-hidden="true"
               className="shelf-spacer"
               style={{
-                height: `${(catalog.length - rowRange.end) * SHELF_STEP_REM - SHELF_GAP_REM}rem`,
+                height: `${(displayCatalog.length - rowRange.end) * SHELF_STEP_REM - SHELF_GAP_REM}rem`,
               }}
             />
           )}

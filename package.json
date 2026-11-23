@@ -13,7 +13,10 @@
     "test:e2e": "playwright test",
     "bench": "npm run generate:catalog && npm run build && tsx scripts/benchmark.ts",
     "bench:check": "npm run generate:catalog && npm run build && tsx scripts/benchmark.ts --json bench/latest.json && tsx scripts/check-budgets.ts",
-    "analyze:experiment": "tsx scripts/analyze-experiment.ts"
+    "analyze:experiment": "tsx scripts/analyze-experiment.ts",
+    "capture:demo": "npm run build && tsx scripts/capture-screenshots.ts",
+    "record:demo": "npm run build && tsx scripts/capture-video.ts",
+    "lighthouse:deployed": "mkdir -p lighthouse && CHROME_PATH=$(node -e \"import('playwright').then(async ({chromium}) => console.log(chromium.executablePath()))\") lighthouse https://tv-ui-perf-lab.vercel.app/ --chrome-flags=\"--headless --no-sandbox\" --only-categories=performance,accessibility,best-practices,seo --output=json --output-path=lighthouse/live.json"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.15.0",
@@ -28,6 +31,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
+    "lighthouse": "^13.6.0",
     "oxlint": "^1.90.0",
     "playwright": "^1.65.1",
     "tsx": "^4.20.6",
